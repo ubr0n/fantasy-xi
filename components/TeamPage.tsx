@@ -49,7 +49,6 @@ export default function TeamPage({ managerId }: Props) {
   const [liveData, setLiveData] = useState<LiveGameweek | null>(null);
   const [league, setLeague] = useState<ClassicLeague | null>(null);
   const [enriched, setEnriched] = useState<EnrichedEntry[]>([]);
-  const [viewedId, setViewedId] = useState<number | null>(null);
   const [viewedManager, setViewedManager] = useState<ManagerInfo | null>(null);
   const [viewedPicks, setViewedPicks] = useState<ManagerPicks | null>(null);
   const [currentGW, setCurrentGW] = useState(0);
@@ -57,9 +56,17 @@ export default function TeamPage({ managerId }: Props) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [selectedPlayer, setSelectedPlayer] = useState<number | null>(null);
-  const [mobileTab, setMobileTab] = useState<MobileTab>("team");
   const [rightView, setRightView] = useState<RightView>("inplay");
   const [isMobile, setIsMobile] = useState(false);
+
+  const mobileTab = (searchParams.get("tab") as MobileTab) || "team";
+  const viewedId = searchParams.get("viewed") ? parseInt(searchParams.get("viewed")!) : null;
+
+  const setMobileTab = (tab: MobileTab) => {
+    const p = new URLSearchParams(searchParams.toString());
+    p.set("tab", tab);
+    router.replace(`${pathname}?${p.toString()}`);
+  };
 
   const myLeagues: LeagueMembership[] = manager?.leagues?.classic || [];
   const leagueId = leagueParam
@@ -130,7 +137,7 @@ export default function TeamPage({ managerId }: Props) {
           const p = await fetchManagerPicks(entry.entry, activeGW);
           return {
             ...entry,
-            livePoints: calculateLivePoints(p.picks, liveMap).total,
+            livePoints: calculateLivePoints(p.picks, liveMap, p.active_chip).total,
             chipActive: p.active_chip,
             captain: p.picks.find((pk) => pk.is_captain)?.element,
             entryPicks: p.picks,
@@ -190,7 +197,7 @@ export default function TeamPage({ managerId }: Props) {
   const liveMap = new Map<number, LiveElement>();
   liveData?.elements.forEach((e) => liveMap.set(e.id, e));
   const { total: liveTotal, bench: liveBench } = picks
-    ? calcScore(picks.picks, liveMap)
+    ? calcScore(picks.picks, liveMap, picks.active_chip)
     : { total: 0, bench: 0 };
   const playerMap = new Map(bootstrap?.elements.map((p) => [p.id, p]));
   const teamMap = new Map(bootstrap?.teams.map((t) => [t.id, t]));
@@ -202,7 +209,7 @@ export default function TeamPage({ managerId }: Props) {
   const displayScore =
     viewedId !== null
       ? viewedPicks
-        ? calcScore(viewedPicks.picks, liveMap)
+        ? calcScore(viewedPicks.picks, liveMap, viewedPicks.active_chip)
         : { total: 0, bench: 0 }
       : { total: liveTotal, bench: liveBench };
 
@@ -221,8 +228,14 @@ export default function TeamPage({ managerId }: Props) {
   };
 
   const handleManagerClick = (entryId: number) => {
-    setViewedId(entryId === managerId ? null : entryId);
-    if (isMobile) setMobileTab("team");
+    const p = new URLSearchParams(searchParams.toString());
+    if (entryId === managerId) {
+      p.delete("viewed");
+    } else {
+      p.set("viewed", String(entryId));
+    }
+    if (isMobile) p.set("tab", "team");
+    router.replace(`${pathname}?${p.toString()}`);
   };
 
   const leaguePanelProps = {
@@ -254,7 +267,11 @@ export default function TeamPage({ managerId }: Props) {
     onGWChange: setGW,
     onPlayerClick: setSelectedPlayer,
     isViewing: viewedId !== null,
-    onBack: () => setViewedId(null),
+    onBack: () => {
+      const p = new URLSearchParams(searchParams.toString());
+      p.delete("viewed");
+      router.replace(`${pathname}?${p.toString()}`);
+    },
     isMobile,
     onRefresh: () => {
       setIsRefreshing(true);
@@ -266,6 +283,7 @@ export default function TeamPage({ managerId }: Props) {
     view: rightView,
     onViewChange: setRightView,
     picks,
+    liveData,
     liveMap,
     playerMap,
     teamMap,

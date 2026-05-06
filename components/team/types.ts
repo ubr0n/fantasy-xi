@@ -1,7 +1,7 @@
 import type { LeagueEntry, Pick as FplPick, LiveElement } from "@/lib/fpl";
 
 export type MobileTab = "league" | "team" | "live" | "stats";
-export type RightView = "inplay" | "chips" | "ownership";
+export type RightView = "inplay" | "feed" | "chips" | "ownership";
 
 export interface EnrichedEntry extends LeagueEntry {
   livePoints?: number;
@@ -39,15 +39,20 @@ export const STAT_META: Record<string, [string, string]> = {
   bonus: ["Bonus Points", "⭐"],
 };
 
-export function calcScore(picks: FplPick[], liveMap: Map<number, LiveElement>) {
+export function calcScore(picks: FplPick[], liveMap: Map<number, LiveElement>, activeChip?: string | null) {
   let total = 0,
     bench = 0;
+  const isBenchBoost = activeChip === "bboost";
   for (const p of picks) {
     const live = liveMap.get(p.element);
     if (!live) continue;
-    const pts = live.stats.total_points * p.multiplier;
+    const rawPts = live.stats.total_points;
+    const pts = rawPts * p.multiplier;
     if (p.position <= 11) total += pts;
-    else bench += live.stats.total_points;
+    else {
+      bench += rawPts;
+      if (isBenchBoost) total += rawPts;
+    }
   }
   return { total, bench };
 }

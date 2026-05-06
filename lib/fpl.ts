@@ -305,10 +305,12 @@ export function getRankArrow(rank: number, lastRank: number) {
 
 export function calculateLivePoints(
   picks: Pick[],
-  liveData: Map<number, LiveElement>
+  liveData: Map<number, LiveElement>,
+  activeChip?: string | null
 ): { total: number; bench: number; playing: number } {
   let playing = 0;
   let bench = 0;
+  const isBenchBoost = activeChip === "bboost";
 
   for (const pick of picks) {
     const live = liveData.get(pick.element);
@@ -318,6 +320,7 @@ export function calculateLivePoints(
       playing += pts;
     } else {
       bench += live.stats.total_points;
+      if (isBenchBoost) playing += live.stats.total_points;
     }
   }
 

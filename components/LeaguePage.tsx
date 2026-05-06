@@ -98,7 +98,7 @@ export default function LeaguePage({ leagueId }: Props) {
       const enrichPromises = entries.slice(0, 20).map(async (entry) => {
         try {
           const picks = await fetchManagerPicks(entry.entry, currentGW);
-          const liveScore = calculateLivePoints(picks.picks, liveMap);
+          const liveScore = calculateLivePoints(picks.picks, liveMap, picks.active_chip);
           const captain = picks.picks.find((p) => p.is_captain)?.element;
           return {
             ...entry,

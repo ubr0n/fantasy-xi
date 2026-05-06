@@ -24,9 +24,8 @@ export default function PlayerRow({
   const player = playerMap.get(pick.element);
   const team = player ? teamMap.get(player.team) : null;
   const live = liveMap.get(pick.element);
-  const pts = live
-    ? live.stats.total_points * pick.multiplier
-    : player?.event_points || 0;
+  const rawPts = live ? live.stats.total_points : player?.event_points || 0;
+  const pts = isBench ? rawPts : live ? rawPts * pick.multiplier : rawPts;
   const posColor = player ? getPositionColor(player.element_type) : "#fff";
   const s = live?.stats;
   const contribPct =

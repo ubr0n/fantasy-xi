@@ -4,7 +4,7 @@ import { useTheme } from "./ThemeProvider";
 import { Moon, Sun, Zap, Users } from "lucide-react";
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import logo from "@/app/logo.png";
+import logo from "@/app/newlogo.png";
 
 export default function Navbar() {
   const { theme, toggle } = useTheme();
@@ -29,14 +29,14 @@ export default function Navbar() {
       }}
     >
       <Link href="/" className="no-underline flex items-center gap-2">
-        {/* <Image
-          height={50}
-          width={50}
+        <Image
+          height={90}
+          width={60}
           src={logo}
           alt={""}
           className="object-contain z-10"
-        /> */}
-        <div
+        />
+        {/* <div
           className="w-8 h-8 rounded-lg flex items-center justify-center"
           style={{ background: "var(--accent)" }}
         >
@@ -50,7 +50,7 @@ export default function Navbar() {
           }}
         >
           Fantasy<span style={{ color: "var(--accent)" }}>XI</span>
-        </span>
+        </span> */}
       </Link>
 
       <div className="flex items-center gap-2">
