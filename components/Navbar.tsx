@@ -1,10 +1,11 @@
 "use client";
 import Link from "next/link";
 import { useTheme } from "./ThemeProvider";
-import { Moon, Sun, Zap, Users } from "lucide-react";
+import { Moon, Sun, Users } from "lucide-react";
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import logo from "@/app/newlogo.png";
+import logo from "@/app/app-logo.png";
+import logoDark from "@/app/app-logo-dark.png";
 
 export default function Navbar() {
   const { theme, toggle } = useTheme();
@@ -28,29 +29,14 @@ export default function Navbar() {
         boxShadow: scrolled ? "var(--shadow-sm)" : "none",
       }}
     >
-      <Link href="/" className="no-underline flex items-center gap-2">
+      <Link href="/" className="no-underline flex items-start gap-2">
         <Image
-          height={90}
-          width={60}
-          src={logo}
-          alt={""}
-          className="object-contain z-10"
+          // height={20}
+          // width={20}
+          src={theme === "dark" ? logoDark : logo}
+          alt={"app logo"}
+          className="object-contain z-10 h-10 xl:h-12 w-fit"
         />
-        {/* <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center"
-          style={{ background: "var(--accent)" }}
-        >
-          <Zap size={18} color="#000" fill="#000" />
-        </div>
-        <span
-          className="text-[1.4rem] tracking-[2px]"
-          style={{
-            fontFamily: "var(--font-display)",
-            color: "var(--text-primary)",
-          }}
-        >
-          Fantasy<span style={{ color: "var(--accent)" }}>XI</span>
-        </span> */}
       </Link>
 
       <div className="flex items-center gap-2">

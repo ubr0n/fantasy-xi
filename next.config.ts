@@ -3,7 +3,14 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: "standalone",
   images: {
-    domains: ["resources.premierleague.com"],
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "resources.premierleague.com",
+        port: "",
+        pathname: "/**",
+      },
+    ],
   },
 };
 

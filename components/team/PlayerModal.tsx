@@ -71,7 +71,7 @@ export default function PlayerModal({
 
   return (
     <div
-      className="fixed inset-0 z-[1000] flex items-end justify-center"
+      className="fixed inset-0 z-1000 flex items-end justify-center"
       style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(6px)" }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
@@ -124,10 +124,14 @@ export default function PlayerModal({
                 {player ? getPositionName(player.element_type) : "?"}
               </span>
               {myPick?.is_captain && (
-                <span className="badge badge-yellow text-[0.62rem]">Captain</span>
+                <span className="badge badge-yellow text-[0.62rem]">
+                  Captain
+                </span>
               )}
               {myPick?.is_vice_captain && (
-                <span className="badge badge-blue text-[0.62rem]">Vice-Cap</span>
+                <span className="badge badge-blue text-[0.62rem]">
+                  Vice-Cap
+                </span>
               )}
             </div>
             <h2
@@ -140,7 +144,10 @@ export default function PlayerModal({
             >
               {player?.web_name || "—"}
             </h2>
-            <p className="text-[0.75rem] mt-0.5" style={{ color: "var(--text-muted)" }}>
+            <p
+              className="text-[0.75rem] mt-0.5"
+              style={{ color: "var(--text-muted)" }}
+            >
               {player?.first_name} {player?.second_name} · {team?.name} ·{" "}
               {formatCost(player?.now_cost || 0)}
             </p>
@@ -153,7 +160,9 @@ export default function PlayerModal({
                   fontFamily: "var(--font-display)",
                   fontSize: "2.8rem",
                   color:
-                    s.total_points >= 10 ? "var(--accent)" : "var(--text-primary)",
+                    s.total_points >= 10
+                      ? "var(--accent)"
+                      : "var(--text-primary)",
                 }}
               >
                 {s.total_points * (myPick?.multiplier || 1)}
@@ -179,7 +188,7 @@ export default function PlayerModal({
             >
               Points Breakdown
             </div>
-            <div className="flex flex-col gap-[3px]">
+            <div className="flex flex-col gap-0.75">
               {breakdown.map((item, i) => (
                 <div
                   key={i}
@@ -197,7 +206,7 @@ export default function PlayerModal({
                     ×{item.value}
                   </span>
                   <span
-                    className="min-w-[28px] text-right text-[0.88rem] font-bold"
+                    className="min-w-7 text-right text-[0.88rem] font-bold"
                     style={{
                       fontFamily: "var(--font-mono)",
                       color: item.pts > 0 ? "var(--accent)" : "var(--danger)",
@@ -234,7 +243,7 @@ export default function PlayerModal({
               In League — {owners.length} manager
               {owners.length !== 1 ? "s" : ""}
             </div>
-            <div className="flex flex-col gap-[3px]">
+            <div className="flex flex-col gap-0.75">
               {owners.map((o, i) => (
                 <div
                   key={i}
@@ -250,15 +259,21 @@ export default function PlayerModal({
                       {o.team}
                     </div>
                   </div>
-                  <div className="flex gap-[3px] shrink-0">
+                  <div className="flex gap-0.75 shrink-0">
                     {!o.isStarting && (
-                      <span className="badge badge-blue text-[0.58rem]">Sub</span>
+                      <span className="badge badge-blue text-[0.58rem]">
+                        Sub
+                      </span>
                     )}
                     {o.isCaptain && (
-                      <span className="badge badge-yellow text-[0.58rem]">Cap</span>
+                      <span className="badge badge-yellow text-[0.58rem]">
+                        Cap
+                      </span>
                     )}
                     {o.isVC && (
-                      <span className="badge badge-blue text-[0.58rem]">VC</span>
+                      <span className="badge badge-blue text-[0.58rem]">
+                        VC
+                      </span>
                     )}
                   </div>
                 </div>

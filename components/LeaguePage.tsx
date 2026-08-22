@@ -98,7 +98,11 @@ export default function LeaguePage({ leagueId }: Props) {
       const enrichPromises = entries.slice(0, 20).map(async (entry) => {
         try {
           const picks = await fetchManagerPicks(entry.entry, currentGW);
-          const liveScore = calculateLivePoints(picks.picks, liveMap, picks.active_chip);
+          const liveScore = calculateLivePoints(
+            picks.picks,
+            liveMap,
+            picks.active_chip,
+          );
           const captain = picks.picks.find((p) => p.is_captain)?.element;
           return {
             ...entry,
@@ -213,7 +217,10 @@ export default function LeaguePage({ leagueId }: Props) {
             </button>
           </Link>
           <div className="flex items-center gap-2">
-            <span className="text-[0.75rem]" style={{ color: "var(--text-muted)" }}>
+            <span
+              className="text-[0.75rem]"
+              style={{ color: "var(--text-muted)" }}
+            >
               Updated {lastRefresh.toLocaleTimeString()}
             </span>
             <button
@@ -231,9 +238,7 @@ export default function LeaguePage({ leagueId }: Props) {
         </div>
 
         {/* League header card */}
-        <div
-          className="card animate-fade-in-up relative overflow-hidden mb-4 px-7 py-5"
-        >
+        <div className="card animate-fade-in-up relative overflow-hidden mb-4 px-7 py-5">
           <div
             className="absolute inset-0 opacity-15 pointer-events-none"
             style={{
@@ -264,7 +269,14 @@ export default function LeaguePage({ leagueId }: Props) {
               {[
                 { val: displayEntries.length, label: "Managers", accent: true },
                 gwEvent
-                  ? { val: `GW${currentGW}`, label: gwEvent.finished ? "Finished" : gwEvent.is_current ? "Live" : "Upcoming" }
+                  ? {
+                      val: `GW${currentGW}`,
+                      label: gwEvent.finished
+                        ? "Finished"
+                        : gwEvent.is_current
+                          ? "Live"
+                          : "Upcoming",
+                    }
                   : null,
                 gwEvent?.average_entry_score != null
                   ? { val: gwEvent.average_entry_score, label: "GW Avg" }
@@ -296,7 +308,10 @@ export default function LeaguePage({ leagueId }: Props) {
 
         {/* Sort controls */}
         <div className="flex flex-wrap items-center gap-1.5 mb-3">
-          <span className="text-[0.75rem] mr-1" style={{ color: "var(--text-muted)" }}>
+          <span
+            className="text-[0.75rem] mr-1"
+            style={{ color: "var(--text-muted)" }}
+          >
             Sort by:
           </span>
           {sortBtn("rank", "📍 Rank")}
@@ -309,9 +324,7 @@ export default function LeaguePage({ leagueId }: Props) {
 
       {/* Table */}
       <div className="flex-1 min-h-0 px-6 pb-6 flex flex-col">
-        <div
-          className="card animate-scale-in flex-1 min-h-0 flex flex-col overflow-hidden"
-        >
+        <div className="card animate-scale-in flex-1 min-h-0 flex flex-col overflow-hidden">
           {/* Column headers */}
           <div
             className="shrink-0 grid gap-2 px-4 py-[0.6rem] border-b border-(--border) text-[0.68rem] font-bold uppercase tracking-widest"
@@ -353,7 +366,7 @@ export default function LeaguePage({ leagueId }: Props) {
                     router.push(`/team/${entry.entry}?gw=${currentGW}`)
                   }
                 >
-                  <div className="flex items-center gap-[3px]">
+                  <div className="flex items-center gap-0.75">
                     <span
                       className="font-bold text-[0.85rem]"
                       style={{
@@ -432,9 +445,7 @@ export default function LeaguePage({ leagueId }: Props) {
 
                   <div className="hide-sm text-right">
                     {entry.chipActive && (
-                      <span
-                        className="badge badge-purple text-[0.6rem]"
-                      >
+                      <span className="badge badge-purple text-[0.6rem]">
                         {CHIP_LABELS[entry.chipActive] || entry.chipActive}
                       </span>
                     )}

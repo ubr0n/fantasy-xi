@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import Navbar from '@/components/Navbar';
+import AppBackground from '@/components/AppBackground';
 
 export const metadata: Metadata = {
   title: 'FPL Live — Fantasy Premier League Dashboard',
@@ -13,8 +14,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body>
         <ThemeProvider>
+          <AppBackground />
           <Navbar />
-          <main>{children}</main>
+          <main className="relative z-1">{children}</main>
         </ThemeProvider>
       </body>
     </html>

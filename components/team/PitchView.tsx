@@ -33,7 +33,7 @@ function PitchCard({
     <div
       onClick={() => onPlayerClick(pick.element)}
       className="flex flex-col items-center gap-1 cursor-pointer"
-      style={{ width: 75, opacity: isBench ? 0.8 : 1 }}
+      style={{ width: 70, opacity: isBench ? 0.8 : 1 }}
     >
       <div className="relative">
         <div

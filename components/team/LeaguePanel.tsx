@@ -169,7 +169,7 @@ export default function LeaguePanel({
 
             return (
               <div
-                key={entry.id}
+                key={entry.entry}
                 className="row-item grid gap-1 px-[0.9rem] py-2 cursor-pointer items-center"
                 onClick={() => onManagerClick(entry.entry)}
                 style={{

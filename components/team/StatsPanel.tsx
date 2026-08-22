@@ -2,7 +2,12 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { Activity, Radio } from "lucide-react";
-import type { ManagerPicks, LiveElement, LiveGameweek, LiveStats } from "@/lib/fpl";
+import type {
+  ManagerPicks,
+  LiveElement,
+  LiveGameweek,
+  LiveStats,
+} from "@/lib/fpl";
 import type { EnrichedEntry, RightView } from "./types";
 import { CHIP_LABELS, CHIP_CLASSES } from "./types";
 
@@ -27,7 +32,10 @@ function formatAge(ms: number): string {
   return `${Math.floor(m / 60)}h ago`;
 }
 
-function useLiveFeed(liveData: LiveGameweek | null, picks: ManagerPicks | null): FeedEvent[] {
+function useLiveFeed(
+  liveData: LiveGameweek | null,
+  picks: ManagerPicks | null,
+): FeedEvent[] {
   const [events, setEvents] = useState<FeedEvent[]>([]);
   const prevRef = useRef<Map<number, LiveStats> | null>(null);
 
@@ -44,16 +52,39 @@ function useLiveFeed(liveData: LiveGameweek | null, picks: ManagerPicks | null):
       const isMine = myIds.has(el.id);
 
       const push = (emoji: string, label: string, suffix: string) => {
-        newEvents.push({ key: `${el.id}-${suffix}-${now}`, at: now, playerId: el.id, emoji, label, newTotal: s.total_points, isMine, isLive: !isInit });
+        newEvents.push({
+          key: `${el.id}-${suffix}-${now}`,
+          at: now,
+          playerId: el.id,
+          emoji,
+          label,
+          newTotal: s.total_points,
+          isMine,
+          isLive: !isInit,
+        });
       };
 
       if (isInit) {
-        const notable = s.goals_scored > 0 || s.assists > 0 || s.own_goals > 0 ||
-          s.yellow_cards > 0 || s.red_cards > 0 || s.penalties_saved > 0 ||
-          s.penalties_missed > 0 || s.clean_sheets > 0 || s.bonus > 0 || s.saves >= 3;
+        const notable =
+          s.goals_scored > 0 ||
+          s.assists > 0 ||
+          s.own_goals > 0 ||
+          s.yellow_cards > 0 ||
+          s.red_cards > 0 ||
+          s.penalties_saved > 0 ||
+          s.penalties_missed > 0 ||
+          s.clean_sheets > 0 ||
+          s.bonus > 0 ||
+          s.saves >= 3;
         if (!notable) return;
-        if (s.goals_scored > 0) push("⚽", s.goals_scored > 1 ? `${s.goals_scored} goals` : "scored", "g");
-        if (s.assists > 0) push("🅰️", s.assists > 1 ? `${s.assists} assists` : "assisted", "a");
+        if (s.goals_scored > 0)
+          push(
+            "⚽",
+            s.goals_scored > 1 ? `${s.goals_scored} goals` : "scored",
+            "g",
+          );
+        if (s.assists > 0)
+          push("🅰️", s.assists > 1 ? `${s.assists} assists` : "assisted", "a");
         if (s.own_goals > 0) push("❌", "own goal", "og");
         if (s.yellow_cards > 0) push("🟨", "yellow card", "yc");
         if (s.red_cards > 0) push("🟥", "red card", "rc");
@@ -63,16 +94,29 @@ function useLiveFeed(liveData: LiveGameweek | null, picks: ManagerPicks | null):
         if (s.saves >= 3) push("🧤", `${s.saves} saves`, "sv");
         if (s.bonus > 0) push("⭐", `+${s.bonus} bonus`, "bn");
       } else if (prev) {
-        const d = (k: keyof LiveStats) => (s[k] as number) - (prev[k] as number);
-        if (d("goals_scored") > 0) push("⚽", d("goals_scored") > 1 ? `${d("goals_scored")} goals` : "scored", "g");
-        if (d("assists") > 0) push("🅰️", d("assists") > 1 ? `${d("assists")} assists` : "assisted", "a");
+        const d = (k: keyof LiveStats) =>
+          (s[k] as number) - (prev[k] as number);
+        if (d("goals_scored") > 0)
+          push(
+            "⚽",
+            d("goals_scored") > 1 ? `${d("goals_scored")} goals` : "scored",
+            "g",
+          );
+        if (d("assists") > 0)
+          push(
+            "🅰️",
+            d("assists") > 1 ? `${d("assists")} assists` : "assisted",
+            "a",
+          );
         if (d("own_goals") > 0) push("❌", "own goal", "og");
         if (d("yellow_cards") > 0) push("🟨", "yellow card", "yc");
         if (d("red_cards") > 0) push("🟥", "red card", "rc");
         if (d("penalties_saved") > 0) push("🥅", "penalty saved", "ps");
         if (d("penalties_missed") > 0) push("❌", "penalty missed", "pm");
-        if (prev.clean_sheets === 0 && s.clean_sheets > 0) push("🧤", "clean sheet", "cs");
-        if (prev.clean_sheets > 0 && s.clean_sheets === 0) push("💥", "clean sheet lost", "cs_lost");
+        if (prev.clean_sheets === 0 && s.clean_sheets > 0)
+          push("🧤", "clean sheet", "cs");
+        if (prev.clean_sheets > 0 && s.clean_sheets === 0)
+          push("💥", "clean sheet lost", "cs_lost");
         const bnDelta = d("bonus");
         if (bnDelta > 0) push("⭐", `+${bnDelta} bonus`, "bn");
         if (bnDelta < 0) push("⭐", `${bnDelta} bonus`, "bn_drop");
@@ -82,7 +126,8 @@ function useLiveFeed(liveData: LiveGameweek | null, picks: ManagerPicks | null):
             break;
           }
         }
-        if (Math.floor(s.saves / 3) > Math.floor(prev.saves / 3)) push("🧤", `${s.saves} saves`, "sv");
+        if (Math.floor(s.saves / 3) > Math.floor(prev.saves / 3))
+          push("🧤", `${s.saves} saves`, "sv");
       }
     });
 
@@ -125,85 +170,107 @@ function LiveFeedView({
       >
         <Radio size={26} className="mb-2 opacity-40" />
         <p className="text-[0.82rem]">Watching for live events…</p>
-        <p className="text-[0.7rem] mt-1 opacity-60">Events will appear as the gameweek progresses</p>
+        <p className="text-[0.7rem] mt-1 opacity-60">
+          Events will appear as the gameweek progresses
+        </p>
       </div>
     );
 
   return (
-    <div className="card overflow-hidden">
+    <div className="card overflow-hidden flex flex-col">
       <div className="flex items-center gap-1.5 px-[0.9rem] py-[0.6rem] border-b border-(--border)">
         <span
           className="inline-block w-1.5 h-1.5 rounded-full animate-pulse"
           style={{ background: "var(--accent)" }}
         />
         <span className="font-bold text-[0.78rem]">Live Feed</span>
-        <span className="text-[0.65rem] ml-auto" style={{ color: "var(--text-muted)" }}>
+        <span
+          className="text-[0.65rem] ml-auto"
+          style={{ color: "var(--text-muted)" }}
+        >
           {events.length} events
         </span>
       </div>
-      {events.map((ev) => {
-        const player = playerMap.get(ev.playerId);
-        const team = player ? teamMap.get(player.team) : null;
-        return (
-          <div
-            key={ev.key}
-            className="row-item flex items-center gap-2 px-[0.9rem] py-[0.45rem]"
-            style={{
-              borderLeft: ev.isMine ? "2.5px solid var(--accent)" : "2.5px solid transparent",
-              background: ev.isLive && ev.isMine
-                ? "rgba(0,214,143,0.06)"
-                : ev.isLive
-                  ? "rgba(255,255,255,0.015)"
-                  : undefined,
-            }}
-          >
-            <span className="text-[1rem] shrink-0 w-6 text-center">{ev.emoji}</span>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 font-semibold text-[0.8rem]">
-                <span className="truncate">{player?.web_name ?? ev.playerId}</span>
-                {ev.isMine && (
-                  <span
-                    className="shrink-0 text-[0.52rem] font-bold px-1 py-px rounded"
-                    style={{ background: "rgba(0,214,143,0.15)", color: "var(--accent)" }}
-                  >
-                    YOURS
-                  </span>
-                )}
-                {ev.isLive && (
-                  <span
-                    className="shrink-0 text-[0.52rem] font-bold px-1 py-px rounded"
-                    style={{ background: "rgba(239,68,68,0.15)", color: "#f87171" }}
-                  >
-                    NEW
-                  </span>
-                )}
-              </div>
-              <div
-                className="flex items-center gap-1.5 text-[0.64rem]"
-                style={{ color: "var(--text-muted)" }}
-              >
-                <span>{ev.label}</span>
-                {team && <span>· {team.short_name}</span>}
-                <span className="ml-auto">{ev.isLive ? formatAge(ev.at) : "GW"}</span>
-              </div>
-            </div>
+      <div className="overflow-y-auto h-full">
+        {events.map((ev) => {
+          const player = playerMap.get(ev.playerId);
+          const team = player ? teamMap.get(player.team) : null;
+          return (
             <div
-              className="shrink-0 min-w-[30px] text-right text-[1.05rem]"
+              key={ev.key}
+              className="row-item flex items-center gap-2 px-[0.9rem] py-[0.45rem]"
               style={{
-                fontFamily: "var(--font-display)",
-                color:
-                  ev.newTotal >= 10
-                    ? "var(--accent)"
-                    : ev.newTotal <= 0
-                      ? "var(--danger)"
-                      : "var(--text-primary)",
+                borderLeft: ev.isMine
+                  ? "2.5px solid var(--accent)"
+                  : "2.5px solid transparent",
+                background:
+                  ev.isLive && ev.isMine
+                    ? "rgba(0,214,143,0.06)"
+                    : ev.isLive
+                      ? "rgba(255,255,255,0.015)"
+                      : undefined,
               }}
             >
-              {ev.newTotal}
+              <span className="text-[1rem] shrink-0 w-6 text-center">
+                {ev.emoji}
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 font-semibold text-[0.8rem]">
+                  <span className="truncate">
+                    {player?.web_name ?? ev.playerId}
+                  </span>
+                  {ev.isMine && (
+                    <span
+                      className="shrink-0 text-[0.52rem] font-bold px-1 py-px rounded"
+                      style={{
+                        background: "rgba(0,214,143,0.15)",
+                        color: "var(--accent)",
+                      }}
+                    >
+                      YOURS
+                    </span>
+                  )}
+                  {ev.isLive && (
+                    <span
+                      className="shrink-0 text-[0.52rem] font-bold px-1 py-px rounded"
+                      style={{
+                        background: "rgba(239,68,68,0.15)",
+                        color: "#f87171",
+                      }}
+                    >
+                      NEW
+                    </span>
+                  )}
+                </div>
+                <div
+                  className="flex items-center gap-1.5 text-[0.64rem]"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  <span>{ev.label}</span>
+                  {team && <span>· {team.short_name}</span>}
+                  <span className="ml-auto">
+                    {ev.isLive ? formatAge(ev.at) : "GW"}
+                  </span>
+                </div>
+              </div>
+              <div
+                className="shrink-0 min-w-7.5 text-right text-[1.05rem]"
+                style={{
+                  fontFamily: "var(--font-display)",
+                  color:
+                    ev.newTotal >= 10
+                      ? "var(--accent)"
+                      : ev.newTotal <= 0
+                        ? "var(--danger)"
+                        : "var(--text-primary)",
+                }}
+              >
+                {ev.newTotal}
+              </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -242,55 +309,62 @@ export function InPlayView({
     );
 
   return (
-    <div className="card overflow-hidden">
+    <div className="card flex flex-col overflow-auto">
       <div className="px-[0.9rem] py-[0.6rem] border-b border-(--border)">
         <span className="font-bold text-[0.78rem]">Top Players This GW</span>
       </div>
-      {inPlay.map((el) => {
-        const player = playerMap.get(el.id);
-        const team = player ? teamMap.get(player.team) : null;
-        const s = el.stats;
-        const mine = myIds.has(el.id);
-        return (
-          <div
-            key={el.id}
-            className="row-item flex items-center gap-2 px-[0.9rem] py-[0.48rem] cursor-pointer"
-            onClick={() => onPlayerClick(el.id)}
-            style={{ background: mine ? "rgba(0,214,143,0.05)" : undefined }}
-          >
-            <div className="flex-1 min-w-0">
-              <div className="font-semibold text-[0.8rem] truncate">
-                {player?.web_name || el.id}
-                {mine && (
-                  <span className="ml-1 text-[0.6rem]" style={{ color: "var(--accent)" }}>
-                    ✓
-                  </span>
-                )}
+      <div className="overflow-y-auto h-full">
+        {inPlay.map((el) => {
+          const player = playerMap.get(el.id);
+          const team = player ? teamMap.get(player.team) : null;
+          const s = el.stats;
+          const mine = myIds.has(el.id);
+          return (
+            <div
+              key={el.id}
+              className="row-item flex items-center gap-2 px-[0.9rem] py-[0.48rem] cursor-pointer"
+              onClick={() => onPlayerClick(el.id)}
+              style={{ background: mine ? "rgba(0,214,143,0.05)" : undefined }}
+            >
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-[0.8rem] truncate">
+                  {player?.web_name || el.id}
+                  {mine && (
+                    <span
+                      className="ml-1 text-[0.6rem]"
+                      style={{ color: "var(--accent)" }}
+                    >
+                      ✓
+                    </span>
+                  )}
+                </div>
+                <div
+                  className="flex gap-1 text-[0.64rem]"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  <span>{team?.short_name}</span>
+                  {s.goals_scored > 0 && <span>⚽{s.goals_scored}</span>}
+                  {s.assists > 0 && <span>🅰️{s.assists}</span>}
+                  {s.bonus > 0 && <span>⭐{s.bonus}</span>}
+                  <span>{s.minutes}&apos;</span>
+                </div>
               </div>
               <div
-                className="flex gap-1 text-[0.64rem]"
-                style={{ color: "var(--text-muted)" }}
+                className="text-[1.15rem]"
+                style={{
+                  fontFamily: "var(--font-display)",
+                  color:
+                    s.total_points >= 10
+                      ? "var(--accent)"
+                      : "var(--text-primary)",
+                }}
               >
-                <span>{team?.short_name}</span>
-                {s.goals_scored > 0 && <span>⚽{s.goals_scored}</span>}
-                {s.assists > 0 && <span>🅰️{s.assists}</span>}
-                {s.bonus > 0 && <span>⭐{s.bonus}</span>}
-                <span>{s.minutes}&apos;</span>
+                {s.total_points}
               </div>
             </div>
-            <div
-              className="text-[1.15rem]"
-              style={{
-                fontFamily: "var(--font-display)",
-                color:
-                  s.total_points >= 10 ? "var(--accent)" : "var(--text-primary)",
-              }}
-            >
-              {s.total_points}
-            </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -300,40 +374,44 @@ export function InPlayView({
 function ChipsView({ enriched }: { enriched: EnrichedEntry[] }) {
   const withChips = enriched.filter((e) => e.chipActive);
   return (
-    <div className="card overflow-hidden">
+    <div className="card overflow-auto">
       <div className="px-[0.9rem] py-[0.6rem] border-b border-(--border)">
         <span className="font-bold text-[0.78rem]">Active Chips</span>
       </div>
-      {withChips.length === 0 ? (
-        <div
-          className="p-6 text-center text-[0.82rem]"
-          style={{ color: "var(--text-muted)" }}
-        >
-          No active chips this GW
-        </div>
-      ) : (
-        withChips.map((e) => (
+      <div className="overflow-y-auto h-full">
+        {withChips.length === 0 ? (
           <div
-            key={e.id}
-            className="row-item flex items-center gap-2 px-[0.9rem] py-[0.48rem]"
+            className="p-6 text-center text-[0.82rem]"
+            style={{ color: "var(--text-muted)" }}
           >
-            <div className="flex-1 min-w-0">
-              <div className="font-semibold text-[0.8rem]">{e.player_name}</div>
-              <div
-                className="text-[0.65rem] truncate"
-                style={{ color: "var(--text-muted)" }}
-              >
-                {e.entry_name}
-              </div>
-            </div>
-            <span
-              className={`badge ${CHIP_CLASSES[e.chipActive!] || "badge-purple"} text-[0.65rem]`}
-            >
-              {CHIP_LABELS[e.chipActive!] || e.chipActive}
-            </span>
+            No active chips this GW
           </div>
-        ))
-      )}
+        ) : (
+          withChips.map((e) => (
+            <div
+              key={e.id}
+              className="row-item flex items-center gap-2 px-[0.9rem] py-[0.48rem]"
+            >
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-[0.8rem]">
+                  {e.player_name}
+                </div>
+                <div
+                  className="text-[0.65rem] truncate"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  {e.entry_name}
+                </div>
+              </div>
+              <span
+                className={`badge ${CHIP_CLASSES[e.chipActive!] || "badge-purple"} text-[0.65rem]`}
+              >
+                {CHIP_LABELS[e.chipActive!] || e.chipActive}
+              </span>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 }
@@ -354,8 +432,10 @@ function OwnershipView({
   for (const e of enriched) {
     if (!e.entryPicks) continue;
     for (const p of e.entryPicks) {
-      if (p.position <= 11) owned.set(p.element, (owned.get(p.element) || 0) + 1);
-      if (p.is_captain) captained.set(p.element, (captained.get(p.element) || 0) + 1);
+      if (p.position <= 11)
+        owned.set(p.element, (owned.get(p.element) || 0) + 1);
+      if (p.is_captain)
+        captained.set(p.element, (captained.get(p.element) || 0) + 1);
     }
   }
   const total = enriched.filter((e) => e.entryPicks).length;
@@ -374,48 +454,62 @@ function OwnershipView({
     );
 
   return (
-    <div className="card overflow-hidden">
+    <div className="card overflow-auto flex flex-col">
       <div className="flex items-center gap-1.5 px-[0.9rem] py-[0.6rem] border-b border-(--border)">
         <span className="font-bold text-[0.78rem]">League Ownership</span>
         <span className="text-[0.65rem]" style={{ color: "var(--text-muted)" }}>
           ({total} managers)
         </span>
       </div>
-      {top.map(([id, count]) => {
-        const player = playerMap.get(id);
-        const caps = captained.get(id) || 0;
-        const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-        return (
-          <div
-            key={id}
-            className="row-item flex items-center gap-2 px-[0.9rem] py-[0.48rem] cursor-pointer"
-            onClick={() => onPlayerClick(id)}
-          >
-            <div className="flex-1 min-w-0">
-              <div className="font-semibold text-[0.8rem]">{player?.web_name || id}</div>
-              <div className="flex items-center gap-[3px] mt-[3px]">
-                <div
-                  className="h-[3px] rounded-full opacity-70"
-                  style={{ width: pct, maxWidth: 80, background: "var(--accent)" }}
-                />
-                <span className="text-[0.62rem]" style={{ color: "var(--text-muted)" }}>
-                  {pct}%
-                </span>
-              </div>
-            </div>
-            <div className="text-right shrink-0">
-              <div className="text-[0.72rem] font-semibold">
-                {count}/{total}
-              </div>
-              {caps > 0 && (
-                <div className="text-[0.58rem]" style={{ color: "var(--warning)" }}>
-                  ⭐ {caps} cap{caps > 1 ? "s" : ""}
+      <div className="overflow-y-auto h-full">
+        {top.map(([id, count]) => {
+          const player = playerMap.get(id);
+          const caps = captained.get(id) || 0;
+          const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+          return (
+            <div
+              key={id}
+              className="row-item flex items-center gap-2 px-[0.9rem] py-[0.48rem] cursor-pointer"
+              onClick={() => onPlayerClick(id)}
+            >
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-[0.8rem]">
+                  {player?.web_name || id}
                 </div>
-              )}
+                <div className="flex items-center gap-0.75 mt-0.75">
+                  <div
+                    className="h-0.75 rounded-full opacity-70"
+                    style={{
+                      width: pct,
+                      maxWidth: 80,
+                      background: "var(--accent)",
+                    }}
+                  />
+                  <span
+                    className="text-[0.62rem]"
+                    style={{ color: "var(--text-muted)" }}
+                  >
+                    {pct}%
+                  </span>
+                </div>
+              </div>
+              <div className="text-right shrink-0">
+                <div className="text-[0.72rem] font-semibold">
+                  {count}/{total}
+                </div>
+                {caps > 0 && (
+                  <div
+                    className="text-[0.58rem]"
+                    style={{ color: "var(--warning)" }}
+                  >
+                    ⭐ {caps} cap{caps > 1 ? "s" : ""}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -453,9 +547,9 @@ export default function StatsPanel({
   const feedEvents = useLiveFeed(liveData, picks);
 
   return (
-    <div className="flex flex-col gap-[10px]">
+    <div className="flex flex-col gap-2.5 max-h-[calc(100vh-6rem)]">
       <div
-        className="flex gap-[3px] rounded-[10px] p-[3px]"
+        className="flex gap-0.75 rounded-[10px] p-0.75"
         style={{ background: "var(--bg-subtle)" }}
       >
         {TABS.map(([v, label]) => (

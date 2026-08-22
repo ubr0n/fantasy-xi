@@ -25,12 +25,7 @@ import TeamPanel from "./team/TeamPanel";
 import StatsPanel, { InPlayView } from "./team/StatsPanel";
 import PlayerModal from "./team/PlayerModal";
 import BottomNav from "./team/BottomNav";
-import {
-  EnrichedEntry,
-  MobileTab,
-  RightView,
-  calcScore,
-} from "./team/types";
+import { EnrichedEntry, MobileTab, RightView, calcScore } from "./team/types";
 
 interface Props {
   managerId: number;
@@ -60,7 +55,9 @@ export default function TeamPage({ managerId }: Props) {
   const [isMobile, setIsMobile] = useState(false);
 
   const mobileTab = (searchParams.get("tab") as MobileTab) || "team";
-  const viewedId = searchParams.get("viewed") ? parseInt(searchParams.get("viewed")!) : null;
+  const viewedId = searchParams.get("viewed")
+    ? parseInt(searchParams.get("viewed")!)
+    : null;
 
   const setMobileTab = (tab: MobileTab) => {
     const p = new URLSearchParams(searchParams.toString());
@@ -137,7 +134,8 @@ export default function TeamPage({ managerId }: Props) {
           const p = await fetchManagerPicks(entry.entry, activeGW);
           return {
             ...entry,
-            livePoints: calculateLivePoints(p.picks, liveMap, p.active_chip).total,
+            livePoints: calculateLivePoints(p.picks, liveMap, p.active_chip)
+              .total,
             chipActive: p.active_chip,
             captain: p.picks.find((pk) => pk.is_captain)?.element,
             entryPicks: p.picks,
@@ -176,7 +174,6 @@ export default function TeamPage({ managerId }: Props) {
         {[1, 2, 3, 4, 5].map((i) => (
           <TableRowSkeleton key={i} />
         ))}
-
       </div>
     );
 
@@ -277,6 +274,7 @@ export default function TeamPage({ managerId }: Props) {
       setIsRefreshing(true);
       setRefreshKey((k) => k + 1);
     },
+    onGoToLeague: () => setMobileTab("league"),
   };
 
   const statsPanelProps = {
