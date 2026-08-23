@@ -292,6 +292,22 @@ export const fetchFixtures = (eventId: number) =>
 
 export const fetchAllFixtures = () => fplFetch<Fixture[]>('fixtures/');
 
+/** The player's next unfinished fixture this gameweek, for showing "who's up next" instead of a 0 before kickoff. */
+export function getUpcomingFixture(
+  teamId: number,
+  fixtures: Fixture[],
+  event: number,
+  teamMap: Map<number, Team>
+): { opponent: string; isHome: boolean } | null {
+  const match = fixtures.find(
+    (f) => f.event === event && !f.finished && (f.team_h === teamId || f.team_a === teamId)
+  );
+  if (!match) return null;
+  const isHome = match.team_h === teamId;
+  const opponent = teamMap.get(isHome ? match.team_a : match.team_h);
+  return opponent ? { opponent: opponent.short_name, isHome } : null;
+}
+
 export const searchManagers = async (text: string): Promise<ManagerSearchResponse> => {
   const res = await fetch(`/api/search-managers?text=${encodeURIComponent(text)}`);
   if (!res.ok) throw new Error(`Search failed: ${res.status}`);

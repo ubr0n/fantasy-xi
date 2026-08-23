@@ -30,6 +30,7 @@ export default function TeamPanel({
   subs,
   armbandElement,
   allFixtures,
+  fixtures,
   activeGW,
   maxGW,
   gwEvents,
@@ -53,6 +54,7 @@ export default function TeamPanel({
   subs: SubPair[];
   armbandElement: number | null;
   allFixtures: Fixture[];
+  fixtures: Fixture[];
   activeGW: number;
   maxGW: number;
   gwEvents: any[];
@@ -310,6 +312,8 @@ export default function TeamPanel({
                       teamMap={teamMap}
                       liveMap={liveMap}
                       liveTotal={liveTotal}
+                      fixtures={fixtures}
+                      activeGW={activeGW}
                       onClick={() => onPlayerClick(pick.element)}
                     />
                   ))
@@ -317,8 +321,11 @@ export default function TeamPanel({
                 <PitchView
                   picks={{ ...picks, picks: effectivePicks }}
                   playerMap={playerMap}
+                  teamMap={teamMap}
                   liveMap={liveMap}
                   liveTotal={liveTotal}
+                  fixtures={fixtures}
+                  activeGW={activeGW}
                   onPlayerClick={onPlayerClick}
                   subs={subs}
                 />
@@ -345,6 +352,8 @@ export default function TeamPanel({
                       playerMap={playerMap}
                       teamMap={teamMap}
                       liveMap={liveMap}
+                      fixtures={fixtures}
+                      activeGW={activeGW}
                       isBench
                       onClick={() => onPlayerClick(pick.element)}
                     />

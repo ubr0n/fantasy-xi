@@ -1,22 +1,28 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import Image from "next/image";
-import type { Pick as FplPick, LiveElement, ManagerPicks, SubPair } from "@/lib/fpl";
-import { getPlayerPhoto, getPositionColor } from "@/lib/fpl";
+import type { Pick as FplPick, LiveElement, ManagerPicks, SubPair, Fixture } from "@/lib/fpl";
+import { getPlayerPhoto, getPositionColor, getUpcomingFixture } from "@/lib/fpl";
 
 function PitchCard({
   pick,
   playerMap,
+  teamMap,
   liveMap,
   liveTotal,
+  fixtures,
+  activeGW,
   onPlayerClick,
   isBench,
   isSubbed,
 }: {
   pick: FplPick;
   playerMap: Map<number, any>;
+  teamMap: Map<number, any>;
   liveMap: Map<number, LiveElement>;
   liveTotal?: number;
+  fixtures?: Fixture[];
+  activeGW?: number;
   onPlayerClick: (id: number) => void;
   isBench?: boolean;
   isSubbed?: boolean;
@@ -26,6 +32,11 @@ function PitchCard({
   const rawPts = live ? live.stats.total_points : player?.event_points || 0;
   const pts = isBench ? rawPts : live ? rawPts * pick.multiplier : rawPts;
   const posColor = player ? getPositionColor(player.element_type) : "#fff";
+  const hasNotPlayed = !live || live.stats.minutes === 0;
+  const upcoming =
+    hasNotPlayed && player && fixtures && activeGW
+      ? getUpcomingFixture(player.team, fixtures, activeGW, teamMap)
+      : null;
   const contribPct =
     !isBench && liveTotal && liveTotal > 0
       ? Math.min(100, Math.max(0, Math.round((pts / liveTotal) * 100)))
@@ -120,16 +131,25 @@ function PitchCard({
         >
           {player?.web_name || "—"}
         </span>
-        <span
-          className="text-[0.95rem] leading-none font-bold"
-          style={{
-            fontFamily: "var(--font-display)",
-            color:
-              pts >= 10 ? "var(--accent)" : pts <= 0 ? "#f87171" : "#e5e7eb",
-          }}
-        >
-          {pts}
-        </span>
+        {upcoming ? (
+          <span
+            className="text-[0.6rem] leading-none font-bold"
+            style={{ color: "rgba(255,255,255,0.75)" }}
+          >
+            {upcoming.opponent} {upcoming.isHome ? "(H)" : "(A)"}
+          </span>
+        ) : (
+          <span
+            className="text-[0.95rem] leading-none font-bold"
+            style={{
+              fontFamily: "var(--font-display)",
+              color:
+                pts >= 10 ? "var(--accent)" : pts <= 0 ? "#f87171" : "#e5e7eb",
+            }}
+          >
+            {pts}
+          </span>
+        )}
         {!isBench && liveTotal && liveTotal > 0 && (
           <>
             <div
@@ -157,15 +177,21 @@ function PitchCard({
 export default function PitchView({
   picks,
   playerMap,
+  teamMap,
   liveMap,
   liveTotal,
+  fixtures,
+  activeGW,
   onPlayerClick,
   subs = [],
 }: {
   picks: ManagerPicks;
   playerMap: Map<number, any>;
+  teamMap: Map<number, any>;
   liveMap: Map<number, LiveElement>;
   liveTotal?: number;
+  fixtures?: Fixture[];
+  activeGW?: number;
   onPlayerClick: (id: number) => void;
   subs?: SubPair[];
 }) {
@@ -254,8 +280,11 @@ export default function PitchView({
                   key={pick.element}
                   pick={pick}
                   playerMap={playerMap}
+                  teamMap={teamMap}
                   liveMap={liveMap}
                   liveTotal={liveTotal}
+                  fixtures={fixtures}
+                  activeGW={activeGW}
                   onPlayerClick={onPlayerClick}
                   isSubbed={subbedElements.has(pick.element)}
                 />
@@ -281,7 +310,10 @@ export default function PitchView({
               key={pick.element}
               pick={pick}
               playerMap={playerMap}
+              teamMap={teamMap}
               liveMap={liveMap}
+              fixtures={fixtures}
+              activeGW={activeGW}
               onPlayerClick={onPlayerClick}
               isBench
               isSubbed={subbedElements.has(pick.element)}

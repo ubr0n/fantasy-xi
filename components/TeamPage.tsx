@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -61,15 +61,28 @@ export default function TeamPage({ managerId }: Props) {
   const [rightView, setRightView] = useState<RightView>("inplay");
   const [isMobile, setIsMobile] = useState(false);
 
-  const mobileTab = (searchParams.get("tab") as MobileTab) || "team";
+  // Discard a poll's response if a newer poll has since been kicked off — a
+  // slow response landing after a fresher one would otherwise overwrite
+  // current totals/subs with stale data.
+  const picksRequestId = useRef(0);
+  const leagueRequestId = useRef(0);
+  const viewedRequestId = useRef(0);
+
+  const [mobileTab, setMobileTabState] = useState<MobileTab>(
+    () => (searchParams.get("tab") as MobileTab) || "team",
+  );
   const viewedId = searchParams.get("viewed")
     ? parseInt(searchParams.get("viewed")!)
     : null;
 
+  // Tab switches happen frequently on mobile, so this updates local state and
+  // the URL bar directly instead of router.replace, which would re-render the
+  // page's Server Component (it does an external fetch) on every tap.
   const setMobileTab = (tab: MobileTab) => {
+    setMobileTabState(tab);
     const p = new URLSearchParams(searchParams.toString());
     p.set("tab", tab);
-    router.replace(`${pathname}?${p.toString()}`);
+    window.history.replaceState(null, "", `${pathname}?${p.toString()}`);
   };
 
   const myLeagues: LeagueMembership[] = manager?.leagues?.classic || [];
@@ -119,18 +132,22 @@ export default function TeamPage({ managerId }: Props) {
 
   useEffect(() => {
     if (!activeGW) return;
+    const requestId = ++picksRequestId.current;
     Promise.all([
       fetchManagerPicks(managerId, activeGW),
       fetchLiveGameweek(activeGW),
       fetchFixtures(activeGW),
     ])
       .then(([p, live, fx]) => {
+        if (requestId !== picksRequestId.current) return;
         setPicks(p);
         setLiveData(live);
         setFixtures(fx);
         setIsRefreshing(false);
       })
-      .catch(() => setIsRefreshing(false));
+      .catch(() => {
+        if (requestId === picksRequestId.current) setIsRefreshing(false);
+      });
   }, [activeGW, managerId, refreshKey]);
 
   useEffect(() => {
@@ -141,6 +158,7 @@ export default function TeamPage({ managerId }: Props) {
 
   useEffect(() => {
     if (!league || !liveData || !bootstrap) return;
+    const requestId = ++leagueRequestId.current;
     const liveMap = new Map<number, LiveElement>();
     liveData.elements.forEach((e) => liveMap.set(e.id, e));
     const playerMap = new Map(bootstrap.elements.map((p) => [p.id, p]));
@@ -171,13 +189,17 @@ export default function TeamPage({ managerId }: Props) {
           return { ...entry };
         }
       }),
-    ).then(setEnriched);
+    ).then((results) => {
+      if (requestId === leagueRequestId.current) setEnriched(results);
+    });
   }, [league, liveData, activeGW, bootstrap, fixtures]);
 
   useEffect(() => {
     if (viewedId === null) return;
+    const requestId = ++viewedRequestId.current;
     Promise.all([fetchManager(viewedId), fetchManagerPicks(viewedId, activeGW)])
       .then(([mgr, p]) => {
+        if (requestId !== viewedRequestId.current) return;
         setViewedManager(mgr);
         setViewedPicks(p);
       })
@@ -300,6 +322,7 @@ export default function TeamPage({ managerId }: Props) {
     subs: displaySubs,
     armbandElement: displayArmband,
     allFixtures,
+    fixtures,
     activeGW,
     maxGW,
     gwEvents,

@@ -63,6 +63,10 @@ export default function LeaguePage({ leagueId }: Props) {
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const sortParam = (searchParams.get("sort") as SortKey) || "rank";
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Discard a loadLive() call's results if a newer call has since started —
+  // otherwise a slow response landing after a fresher one overwrites current
+  // totals/subs with stale data.
+  const liveRequestId = useRef(0);
 
   const setSort = (k: SortKey) => {
     const p = new URLSearchParams(searchParams.toString());
@@ -89,12 +93,14 @@ export default function LeaguePage({ leagueId }: Props) {
 
   const loadLive = useCallback(async () => {
     if (!currentGW || !league || !bootstrap) return;
+    const requestId = ++liveRequestId.current;
     setLiveLoading(true);
     try {
       const [live, fixtures] = await Promise.all([
         fetchLiveGameweek(currentGW),
         fetchFixtures(currentGW),
       ]);
+      if (requestId !== liveRequestId.current) return;
       setLastRefresh(new Date());
 
       const entries = league.standings.results;
@@ -131,11 +137,12 @@ export default function LeaguePage({ leagueId }: Props) {
       });
 
       const enriched = await Promise.all(enrichPromises);
+      if (requestId !== liveRequestId.current) return;
       setEnriched(enriched);
     } catch {
       // live data may not be available
     } finally {
-      setLiveLoading(false);
+      if (requestId === liveRequestId.current) setLiveLoading(false);
     }
   }, [currentGW, league, bootstrap]);
 
@@ -185,6 +192,23 @@ export default function LeaguePage({ leagueId }: Props) {
 
   const playerMap = new Map(bootstrap?.elements.map((p) => [p.id, p]));
 
+  // The value being compared for the active sort — used to detect ties so
+  // equally-placed entries share a rank (1, 1, 1, 4, 5, 6, 6, 8, ...).
+  const sortValue = (entry: EnrichedEntry): number => {
+    switch (sortParam) {
+      case "total":
+        return liveSeasonTotal(entry);
+      case "event_total":
+        return entry.event_total;
+      case "live":
+        return entry.livePoints ?? entry.event_total;
+      case "rank_change":
+        return entry.last_rank - entry.rank;
+      default:
+        return entry.rank;
+    }
+  };
+
   const sorted = [...displayEntries].sort((a, b) => {
     switch (sortParam) {
       case "total":
@@ -200,6 +224,15 @@ export default function LeaguePage({ leagueId }: Props) {
       default:
         return a.rank - b.rank;
     }
+  });
+
+  const displayRanks: number[] = [];
+  sorted.forEach((entry, i) => {
+    displayRanks.push(
+      i > 0 && sortValue(entry) === sortValue(sorted[i - 1])
+        ? displayRanks[i - 1]
+        : i + 1,
+    );
   });
 
   const sortBtn = (key: SortKey, label: string) => (
@@ -360,6 +393,7 @@ export default function LeaguePage({ leagueId }: Props) {
           {/* Rows */}
           <div className="flex-1 min-h-0 overflow-y-auto">
             {sorted.map((entry, idx) => {
+              const displayRank = displayRanks[idx];
               const change = entry.last_rank - entry.rank;
               const liveScore = entry.livePoints ?? entry.event_total;
               const captain = entry.captain
@@ -373,7 +407,7 @@ export default function LeaguePage({ leagueId }: Props) {
                   style={{
                     gridTemplateColumns: GRID,
                     background:
-                      idx === 0
+                      displayRank === 1
                         ? "linear-gradient(90deg,rgba(0,214,143,0.05) 0%,transparent 100%)"
                         : undefined,
                   }}
@@ -387,16 +421,18 @@ export default function LeaguePage({ leagueId }: Props) {
                       style={{
                         fontFamily: "var(--font-mono)",
                         color:
-                          idx < 3 ? "var(--accent)" : "var(--text-primary)",
+                          displayRank <= 3
+                            ? "var(--accent)"
+                            : "var(--text-primary)",
                       }}
                     >
-                      {idx + 1 === 1
+                      {displayRank === 1
                         ? "🥇"
-                        : idx + 1 === 2
+                        : displayRank === 2
                           ? "🥈"
-                          : idx + 1 === 3
+                          : displayRank === 3
                             ? "🥉"
-                            : entry.rank}
+                            : displayRank}
                     </span>
                   </div>
 

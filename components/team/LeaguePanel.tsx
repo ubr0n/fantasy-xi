@@ -50,6 +50,16 @@ export default function LeaguePanel({
   const captainName = (entry: EnrichedEntry) =>
     entry.captain ? (playerMap.get(entry.captain)?.web_name ?? "") : "";
 
+  // The value being compared for the active sort — used to detect ties so
+  // equally-placed entries share a rank (1, 1, 1, 4, 5, 6, 6, 8, ...).
+  const sortValue = (entry: EnrichedEntry): string | number => {
+    if (sort === "captain") return captainName(entry);
+    if (sort === "gw") return entry.livePoints ?? entry.event_total;
+    if (sort === "total") return liveSeasonTotal(entry);
+    if (sort === "chip") return entry.chipActive ? 1 : 0;
+    return entry.rank;
+  };
+
   const sorted = [...raw].sort((a, b) => {
     if (sort === "captain") return captainName(a).localeCompare(captainName(b));
     if (sort === "gw")
@@ -61,6 +71,15 @@ export default function LeaguePanel({
       return bc - ac || a.rank - b.rank;
     }
     return a.rank - b.rank;
+  });
+
+  const displayRanks: number[] = [];
+  sorted.forEach((entry, i) => {
+    displayRanks.push(
+      i > 0 && sortValue(entry) === sortValue(sorted[i - 1])
+        ? displayRanks[i - 1]
+        : i + 1,
+    );
   });
 
   const colHdr = (
@@ -157,6 +176,7 @@ export default function LeaguePanel({
       ) : (
         <div className="overflow-y-auto flex-1 min-h-0">
           {sorted.map((entry, idx) => {
+            const displayRank = displayRanks[idx];
             const change = entry.last_rank - entry.rank;
             const captain = entry.captain
               ? (playerMap.get(entry.captain)?.web_name ?? "—")
@@ -192,10 +212,11 @@ export default function LeaguePanel({
                   className="text-[0.68rem] font-bold"
                   style={{
                     fontFamily: "var(--font-mono)",
-                    color: idx < 3 ? "var(--accent)" : "var(--text-muted)",
+                    color:
+                      displayRank <= 3 ? "var(--accent)" : "var(--text-muted)",
                   }}
                 >
-                  {idx + 1}
+                  {displayRank}
                 </span>
 
                 <div className="min-w-0">

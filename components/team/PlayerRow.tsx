@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import Image from "next/image";
-import type { Pick as FplPick, LiveElement } from "@/lib/fpl";
-import { getPositionColor, getPositionName, getPlayerPhoto } from "@/lib/fpl";
+import type { Pick as FplPick, LiveElement, Fixture } from "@/lib/fpl";
+import { getPositionColor, getPositionName, getPlayerPhoto, getUpcomingFixture } from "@/lib/fpl";
 
 export default function PlayerRow({
   pick,
@@ -11,6 +11,8 @@ export default function PlayerRow({
   liveMap,
   isBench,
   liveTotal,
+  fixtures,
+  activeGW,
   onClick,
 }: {
   pick: FplPick;
@@ -19,6 +21,8 @@ export default function PlayerRow({
   liveMap: Map<number, LiveElement>;
   isBench?: boolean;
   liveTotal?: number;
+  fixtures?: Fixture[];
+  activeGW?: number;
   onClick?: () => void;
 }) {
   const player = playerMap.get(pick.element);
@@ -27,6 +31,11 @@ export default function PlayerRow({
   const rawPts = live ? live.stats.total_points : player?.event_points || 0;
   const pts = isBench ? rawPts : live ? rawPts * pick.multiplier : rawPts;
   const posColor = player ? getPositionColor(player.element_type) : "#fff";
+  const hasNotPlayed = !live || live.stats.minutes === 0;
+  const upcoming =
+    hasNotPlayed && player && fixtures && activeGW
+      ? getUpcomingFixture(player.team, fixtures, activeGW, teamMap)
+      : null;
   const s = live?.stats;
   const contribPct =
     liveTotal && liveTotal > 0
@@ -123,20 +132,31 @@ export default function PlayerRow({
           </div>
         )}
       </div>
-      <div
-        className="min-w-[34px] text-right text-[1.25rem] leading-none"
-        style={{
-          fontFamily: "var(--font-display)",
-          color:
-            pts >= 10
-              ? "var(--accent)"
-              : pts <= 0
-                ? "var(--danger)"
-                : "var(--text-primary)",
-        }}
-      >
-        {pts}
-      </div>
+      {upcoming ? (
+        <div
+          className="min-w-[34px] text-right text-[0.7rem] font-semibold leading-none"
+          style={{ color: "var(--text-muted)" }}
+        >
+          {upcoming.opponent}
+          <br />
+          <span className="text-[0.6rem]">{upcoming.isHome ? "(H)" : "(A)"}</span>
+        </div>
+      ) : (
+        <div
+          className="min-w-[34px] text-right text-[1.25rem] leading-none"
+          style={{
+            fontFamily: "var(--font-display)",
+            color:
+              pts >= 10
+                ? "var(--accent)"
+                : pts <= 0
+                  ? "var(--danger)"
+                  : "var(--text-primary)",
+          }}
+        >
+          {pts}
+        </div>
+      )}
     </div>
   );
 }
