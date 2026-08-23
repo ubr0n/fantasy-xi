@@ -8,6 +8,7 @@ import {
   BootstrapStatic,
   ManagerSearchResult,
 } from "@/lib/fpl";
+import { Skeleton } from "@/components/Skeleton";
 
 export default function HomePage() {
   const router = useRouter();
@@ -131,7 +132,7 @@ export default function HomePage() {
     <div className="min-h-screen">
       {/* Hero */}
       <section className="min-h-screen flex flex-col items-center justify-center px-6 pt-24 pb-12 text-center">
-        {currentEvent && (
+        {currentEvent ? (
           <div
             className="animate-fade-in inline-flex items-center gap-1.5 mb-8 px-4 py-1.5 rounded-full border border-(--border-strong) text-[0.8rem] font-semibold"
             style={{
@@ -143,6 +144,14 @@ export default function HomePage() {
             Gameweek {currentEvent.id}{" "}
             {currentEvent.finished ? "(Finished)" : "— Live"}
           </div>
+        ) : (
+          !bootstrap && (
+            <Skeleton
+              width={160}
+              height={30}
+              style={{ borderRadius: 9999, marginBottom: "2rem" }}
+            />
+          )
         )}
 
         <h1
@@ -299,31 +308,45 @@ export default function HomePage() {
         </div>
 
         {/* GW stats */}
-        {stats.length > 0 && (
-          <div
-            className="animate-fade-in-up flex flex-wrap justify-center gap-3 mt-12"
-            style={{ animationDelay: "0.3s" }}
-          >
-            {stats.map((s, i) => (
+        {!bootstrap ? (
+          <div className="flex flex-wrap justify-center gap-3 mt-12">
+            {[1, 2, 3].map((i) => (
               <div key={i} className="card flex items-center gap-2.5 px-6 py-3">
-                <span className="text-[1.2rem]">{s.icon}</span>
-                <div>
-                  <div
-                    className="text-[1.4rem] leading-none"
-                    style={{ fontFamily: "var(--font-display)" }}
-                  >
-                    {s.value}
-                  </div>
-                  <div
-                    className="text-[0.68rem] uppercase tracking-widest"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    {s.label}
-                  </div>
+                <Skeleton width={22} height={22} style={{ borderRadius: 6 }} />
+                <div className="flex flex-col gap-1.5">
+                  <Skeleton width={40} height={18} />
+                  <Skeleton width={60} height={9} />
                 </div>
               </div>
             ))}
           </div>
+        ) : (
+          stats.length > 0 && (
+            <div
+              className="animate-fade-in-up flex flex-wrap justify-center gap-3 mt-12"
+              style={{ animationDelay: "0.3s" }}
+            >
+              {stats.map((s, i) => (
+                <div key={i} className="card flex items-center gap-2.5 px-6 py-3">
+                  <span className="text-[1.2rem]">{s.icon}</span>
+                  <div>
+                    <div
+                      className="text-[1.4rem] leading-none"
+                      style={{ fontFamily: "var(--font-display)" }}
+                    >
+                      {s.value}
+                    </div>
+                    <div
+                      className="text-[0.68rem] uppercase tracking-widest"
+                      style={{ color: "var(--text-muted)" }}
+                    >
+                      {s.label}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
         )}
 
         <p

@@ -10,6 +10,7 @@ import type {
 } from "@/lib/fpl";
 import type { EnrichedEntry, RightView } from "./types";
 import { CHIP_LABELS, CHIP_CLASSES } from "./types";
+import { TableRowSkeleton } from "@/components/Skeleton";
 
 // ── Feed types & hook ─────────────────────────────────────────────────────────
 
@@ -157,11 +158,22 @@ function LiveFeedView({
   events,
   playerMap,
   teamMap,
+  loading,
 }: {
   events: FeedEvent[];
   playerMap: Map<number, any>;
   teamMap: Map<number, any>;
+  loading?: boolean;
 }) {
+  if (loading)
+    return (
+      <div className="card overflow-hidden">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <TableRowSkeleton key={i} cols={3} />
+        ))}
+      </div>
+    );
+
   if (events.length === 0)
     return (
       <div
@@ -282,12 +294,14 @@ export function InPlayView({
   liveMap,
   playerMap,
   teamMap,
+  loading,
   onPlayerClick,
 }: {
   picks: ManagerPicks | null;
   liveMap: Map<number, LiveElement>;
   playerMap: Map<number, any>;
   teamMap: Map<number, any>;
+  loading?: boolean;
   onPlayerClick: (id: number) => void;
 }) {
   const inPlay = Array.from(liveMap.values())
@@ -296,6 +310,15 @@ export function InPlayView({
     .slice(0, 20);
 
   const myIds = new Set(picks?.picks.map((p) => p.element));
+
+  if (loading)
+    return (
+      <div className="card overflow-hidden">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <TableRowSkeleton key={i} cols={3} />
+        ))}
+      </div>
+    );
 
   if (inPlay.length === 0)
     return (
@@ -371,7 +394,13 @@ export function InPlayView({
 
 // ── ChipsView ─────────────────────────────────────────────────────────────────
 
-function ChipsView({ enriched }: { enriched: EnrichedEntry[] }) {
+function ChipsView({
+  enriched,
+  loading,
+}: {
+  enriched: EnrichedEntry[];
+  loading?: boolean;
+}) {
   const withChips = enriched.filter((e) => e.chipActive);
   return (
     <div className="card lg:overflow-auto">
@@ -379,7 +408,9 @@ function ChipsView({ enriched }: { enriched: EnrichedEntry[] }) {
         <span className="font-bold text-[0.78rem]">Active Chips</span>
       </div>
       <div className="lg:overflow-y-auto lg:h-full">
-        {withChips.length === 0 ? (
+        {loading ? (
+          [1, 2, 3].map((i) => <TableRowSkeleton key={i} cols={2} />)
+        ) : withChips.length === 0 ? (
           <div
             className="p-6 text-center text-[0.82rem]"
             style={{ color: "var(--text-muted)" }}
@@ -421,10 +452,12 @@ function ChipsView({ enriched }: { enriched: EnrichedEntry[] }) {
 function OwnershipView({
   enriched,
   playerMap,
+  loading,
   onPlayerClick,
 }: {
   enriched: EnrichedEntry[];
   playerMap: Map<number, any>;
+  loading?: boolean;
   onPlayerClick: (id: number) => void;
 }) {
   const owned = new Map<number, number>();
@@ -443,13 +476,12 @@ function OwnershipView({
     .sort((a, b) => b[1] - a[1])
     .slice(0, 15);
 
-  if (top.length === 0)
+  if (loading || top.length === 0)
     return (
-      <div
-        className="card p-6 text-center text-[0.82rem]"
-        style={{ color: "var(--text-muted)" }}
-      >
-        Loading ownership data…
+      <div className="card overflow-hidden">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <TableRowSkeleton key={i} cols={3} />
+        ))}
       </div>
     );
 
@@ -532,6 +564,8 @@ export default function StatsPanel({
   playerMap,
   teamMap,
   enriched,
+  liveLoading,
+  enrichedLoading,
   onPlayerClick,
 }: {
   view: RightView;
@@ -542,6 +576,8 @@ export default function StatsPanel({
   playerMap: Map<number, any>;
   teamMap: Map<number, any>;
   enriched: EnrichedEntry[];
+  liveLoading?: boolean;
+  enrichedLoading?: boolean;
   onPlayerClick: (id: number) => void;
 }) {
   const feedEvents = useLiveFeed(liveData, picks);
@@ -573,6 +609,7 @@ export default function StatsPanel({
           liveMap={liveMap}
           playerMap={playerMap}
           teamMap={teamMap}
+          loading={liveLoading}
           onPlayerClick={onPlayerClick}
         />
       )}
@@ -581,13 +618,17 @@ export default function StatsPanel({
           events={feedEvents}
           playerMap={playerMap}
           teamMap={teamMap}
+          loading={liveLoading}
         />
       )}
-      {view === "chips" && <ChipsView enriched={enriched} />}
+      {view === "chips" && (
+        <ChipsView enriched={enriched} loading={enrichedLoading} />
+      )}
       {view === "ownership" && (
         <OwnershipView
           enriched={enriched}
           playerMap={playerMap}
+          loading={enrichedLoading}
           onPlayerClick={onPlayerClick}
         />
       )}

@@ -61,7 +61,13 @@ export default function LeaguePage({ leagueId }: Props) {
   const [currentGW, setCurrentGW] = useState(1);
   const [page, setPage] = useState(1);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
-  const sortParam = (searchParams.get("sort") as SortKey) || "rank";
+  // Local state kept in sync with the URL via history.replaceState rather
+  // than router.replace — the latter forces a full server round-trip to
+  // re-render the page's Server Component (it does an external fetch) on
+  // every tap, which is what made sorting feel laggy.
+  const [sortParam, setSortParam] = useState<SortKey>(
+    () => (searchParams.get("sort") as SortKey) || "rank",
+  );
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // Discard a loadLive() call's results if a newer call has since started —
   // otherwise a slow response landing after a fresher one overwrites current
@@ -69,9 +75,10 @@ export default function LeaguePage({ leagueId }: Props) {
   const liveRequestId = useRef(0);
 
   const setSort = (k: SortKey) => {
+    setSortParam(k);
     const p = new URLSearchParams(searchParams.toString());
     p.set("sort", k);
-    router.replace(`${pathname}?${p.toString()}`);
+    window.history.replaceState(null, "", `${pathname}?${p.toString()}`);
   };
 
   useEffect(() => {

@@ -5,6 +5,7 @@ import type { ClassicLeague, LeagueMembership } from "@/lib/fpl";
 import { liveSeasonTotal } from "@/lib/fpl";
 import type { EnrichedEntry } from "./types";
 import { CHIP_CLASSES } from "./types";
+import { TableRowSkeleton } from "@/components/Skeleton";
 
 type LeagueSort = "rank" | "captain" | "gw" | "total" | "chip";
 
@@ -167,11 +168,10 @@ export default function LeaguePanel({
       </div>
 
       {!league ? (
-        <div
-          className="p-6 text-center text-[0.82rem]"
-          style={{ color: "var(--text-muted)" }}
-        >
-          Loading…
+        <div className="overflow-y-auto flex-1 min-h-0">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <TableRowSkeleton key={i} cols={4} />
+          ))}
         </div>
       ) : (
         <div className="overflow-y-auto flex-1 min-h-0">
