@@ -72,15 +72,26 @@ export default function TeamPanel({
     : [];
   const [viewMode, setViewMode] = useState<"list" | "pitch">(() => {
     const stored = localStorage.getItem("teamPanelViewMode");
-    return stored === "list" || stored === "pitch" ? stored : "list";
+    return stored === "list" || stored === "pitch" ? stored : "pitch";
   });
 
   useEffect(() => {
     localStorage.setItem("teamPanelViewMode", viewMode);
   }, [viewMode]);
 
+  // On mobile, the Pitch view is meant to be a compact at-a-glance snapshot —
+  // manager card, pitch, and bench fit above the fold, with Predictions and
+  // Transfer Suggestions reachable by scrolling below.
+  const compact = isMobile && viewMode === "pitch";
+
   return (
-    <div className="flex flex-col gap-2.5 lg:h-[calc(100vh-6rem)] lg:overflow-y-auto no-scrollbar">
+    <div
+      className={
+        compact
+          ? "flex flex-col gap-1.5 min-h-[calc(100dvh-11.5rem)]"
+          : "flex flex-col gap-2.5 lg:h-[calc(100vh-6rem)] lg:overflow-y-auto no-scrollbar"
+      }
+    >
       {/* Top bar */}
       <div className="flex items-center gap-2 h-fit shrink-0">
         {isMobile && (
@@ -113,7 +124,9 @@ export default function TeamPanel({
       </div>
 
       {/* Manager card */}
-      <div className="card relative overflow-hidden px-5 py-4 shrink-0">
+      <div
+        className={`card relative overflow-hidden shrink-0 ${compact ? "px-3 py-2" : "px-5 py-4"}`}
+      >
         <div
           className="absolute top-0 right-0 h-full w-[40%] pointer-events-none opacity-20"
           style={{
@@ -124,7 +137,7 @@ export default function TeamPanel({
         <div className="relative flex flex-wrap items-center justify-between gap-3">
           <div className="flex gap-2 items-center">
             <div
-              className="w-12 h-12 rounded-xl shrink-0 flex items-center justify-center text-white text-[1.2rem]"
+              className={`rounded-xl shrink-0 flex items-center justify-center text-white ${compact ? "w-8 h-8 text-[0.85rem]" : "w-12 h-12 text-[1.2rem]"}`}
               style={{
                 background: isViewing ? "var(--accent2)" : "var(--accent)",
                 fontFamily: "var(--font-display)",
@@ -134,27 +147,31 @@ export default function TeamPanel({
               {m.player_last_name[0]}
             </div>
             <div className="flex-1 min-w-0">
+              {!compact && (
+                <div
+                  className="text-[0.6rem] uppercase tracking-widest"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  {isViewing ? "Viewing Team" : "My Team"}
+                </div>
+              )}
               <div
-                className="text-[0.6rem] uppercase tracking-widest"
-                style={{ color: "var(--text-muted)" }}
-              >
-                {isViewing ? "Viewing Team" : "My Team"}
-              </div>
-              <div
-                className="leading-none tracking-[1px] text-lg lg:text-xl"
+                className={`leading-none tracking-[1px] ${compact ? "text-[0.9rem]" : "text-lg lg:text-xl"}`}
                 style={{ fontFamily: "var(--font-display)" }}
               >
                 {m.player_first_name} {m.player_last_name}
               </div>
-              <div
-                className="text-[0.75rem]"
-                style={{ color: "var(--text-secondary)" }}
-              >
-                {m.name}
-              </div>
+              {!compact && (
+                <div
+                  className="text-[0.75rem]"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  {m.name}
+                </div>
+              )}
               {picks?.active_chip && (
                 <span
-                  className={`badge ${CHIP_CLASSES[picks.active_chip] || "badge-purple"} mt-1 inline-flex`}
+                  className={`badge ${CHIP_CLASSES[picks.active_chip] || "badge-purple"} ${compact ? "mt-0.5" : "mt-1"} inline-flex`}
                 >
                   ⚡ {CHIP_LABELS[picks.active_chip] || picks.active_chip}
                 </span>
@@ -173,7 +190,7 @@ export default function TeamPanel({
             ].map((s, i) => (
               <div key={i} className="text-center">
                 <div
-                  className="leading-none text-[1.5rem]"
+                  className={`leading-none ${compact ? "text-[1.05rem]" : "text-[1.5rem]"}`}
                   style={{
                     fontFamily: "var(--font-display)",
                     color: s.accent ? "var(--accent)" : "var(--text-primary)",
@@ -229,7 +246,7 @@ export default function TeamPanel({
           <ChevronRight size={13} />
         </button>
       </div>
-      <div className="shrink-0">
+      <div className={compact ? "flex-1 flex flex-col" : "shrink-0"}>
         {/* Squad */}
         {loading ? (
           <div className="flex flex-col gap-1.5">
@@ -247,36 +264,51 @@ export default function TeamPanel({
           </div>
         ) : (
           <>
-            <div
-              className="flex flex-wrap items-center gap-3 rounded-[10px] px-[0.9rem] py-[0.55rem] text-[0.78rem]"
-              style={{ background: "var(--bg-subtle)" }}
-            >
-              <span style={{ color: "var(--text-muted)" }}>
-                Bench:{" "}
-                <strong style={{ color: "var(--accent)" }}>
-                  {liveBench} pts
-                </strong>
-              </span>
-              {picks.entry_history?.event_transfers > 0 && (
+            {!compact && (
+              <div
+                className="flex flex-wrap items-center gap-3 rounded-[10px] px-[0.9rem] py-[0.55rem] text-[0.78rem]"
+                style={{ background: "var(--bg-subtle)" }}
+              >
                 <span style={{ color: "var(--text-muted)" }}>
-                  Transfers:{" "}
-                  <strong>{picks.entry_history.event_transfers}</strong>
-                  {picks.entry_history.event_transfers_cost > 0 && (
-                    <span style={{ color: "var(--danger)" }}>
-                      {" "}
-                      (-{picks.entry_history.event_transfers_cost})
-                    </span>
-                  )}
+                  Bench:{" "}
+                  <strong style={{ color: "var(--accent)" }}>
+                    {liveBench} pts
+                  </strong>
                 </span>
-              )}
-            </div>
+                {picks.entry_history?.event_transfers > 0 && (
+                  <span style={{ color: "var(--text-muted)" }}>
+                    Transfers:{" "}
+                    <strong>{picks.entry_history.event_transfers}</strong>
+                    {picks.entry_history.event_transfers_cost > 0 && (
+                      <span style={{ color: "var(--danger)" }}>
+                        {" "}
+                        (-{picks.entry_history.event_transfers_cost})
+                      </span>
+                    )}
+                  </span>
+                )}
+              </div>
+            )}
 
-            <div className="card overflow-hidden">
-              <div className="flex items-center gap-1.25 px-[0.9rem] py-[0.55rem] border-b border-(--border)">
+            <div
+              className={`card overflow-hidden ${compact ? "flex-1 flex flex-col" : ""}`}
+            >
+              <div className="flex items-center gap-1.25 px-[0.9rem] py-[0.55rem] border-b border-(--border) shrink-0">
                 <Zap size={12} style={{ color: "var(--accent)" }} />
                 <span className="font-bold text-[0.78rem] flex-1">
                   Starting XI
                 </span>
+                {compact && (
+                  <span
+                    className="text-[0.68rem]"
+                    style={{ color: "var(--text-muted)" }}
+                  >
+                    Bench:{" "}
+                    <strong style={{ color: "var(--accent)" }}>
+                      {liveBench}
+                    </strong>
+                  </span>
+                )}
                 <div
                   className="flex gap-0.5 rounded-md p-0.5"
                   style={{ background: "var(--bg-subtle)" }}
@@ -328,6 +360,7 @@ export default function TeamPanel({
                   activeGW={activeGW}
                   onPlayerClick={onPlayerClick}
                   subs={subs}
+                  compact={compact}
                 />
               )}
             </div>
