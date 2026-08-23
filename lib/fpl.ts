@@ -262,8 +262,11 @@ export const fetchClassicLeague = (leagueId: number, page = 1) =>
 
 export const fetchEventStatus = () => fplFetch<EventStatus>('event-status/');
 
-export const searchManagers = (text: string) =>
-  fplFetch<ManagerSearchResponse>(`search/entries/?text=${encodeURIComponent(text)}`);
+export const searchManagers = async (text: string): Promise<ManagerSearchResponse> => {
+  const res = await fetch(`/api/search-managers?text=${encodeURIComponent(text)}`);
+  if (!res.ok) throw new Error(`Search failed: ${res.status}`);
+  return res.json();
+};
 
 export const fetchDreamTeam = (eventId: number) =>
   fplFetch<DreamTeam>(`dream-team/${eventId}/`);

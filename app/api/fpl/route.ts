@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
+import { upsertFromLeagueEntries, upsertFromManagerInfo } from '@/lib/managerIndex';
 
 const FPL_BASE = 'https://fantasy.premierleague.com/api';
 
@@ -13,8 +14,26 @@ const ALLOWED_PATHS = [
   /^entry\/\d+\/event\/\d+\/picks\/?$/,
   /^leagues-classic\/\d+\/standings\/?(\?.*)?$/,
   /^element-summary\/\d+\/?$/,
-  /^search\/entries\/(\?.*)?$/,
 ];
+
+const ENTRY_INFO_PATH = /^entry\/\d+\/?$/;
+const LEAGUE_STANDINGS_PATH = /^leagues-classic\/\d+\/standings\/?(\?.*)?$/;
+
+async function feedManagerIndex(path: string, data: unknown) {
+  try {
+    if (ENTRY_INFO_PATH.test(path)) {
+      await upsertFromManagerInfo(data as Parameters<typeof upsertFromManagerInfo>[0]);
+    } else if (LEAGUE_STANDINGS_PATH.test(path)) {
+      const results =
+        (data as { standings?: { results?: unknown } })?.standings?.results ?? [];
+      await upsertFromLeagueEntries(
+        results as Parameters<typeof upsertFromLeagueEntries>[0],
+      );
+    }
+  } catch (err) {
+    console.error('manager index: failed to index response', err);
+  }
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -47,6 +66,7 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
+    after(() => feedManagerIndex(path, data));
     return NextResponse.json(data, {
       headers: {
         'Cache-Control': path.includes('live') ? 'no-cache' : 's-maxage=60',

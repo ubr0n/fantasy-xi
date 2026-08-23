@@ -208,7 +208,7 @@ export default function HomePage() {
                 />
                 <input
                   className="input pl-10 rounded-[10px] bg-transparent border-0 shadow-none"
-                  placeholder="Team ID..."
+                  placeholder="Team ID or manager/team name..."
                   value={query}
                   onChange={(e) => handleQueryChange(e.target.value)}
                   autoFocus
@@ -294,7 +294,7 @@ export default function HomePage() {
             className="text-[0.75rem] mt-2.5"
             style={{ color: "var(--text-muted)" }}
           >
-            Search by your Team ID directly
+            Search by manager/team name and pick yours, or enter your Team ID directly
           </p>
         </div>
 

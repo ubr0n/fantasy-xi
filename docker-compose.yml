@@ -7,4 +7,5 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
+      - POSTGRES_URL=${POSTGRES_URL}
     restart: unless-stopped
