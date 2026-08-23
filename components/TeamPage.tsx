@@ -10,6 +10,7 @@ import {
   fetchLiveGameweek,
   fetchBootstrap,
   fetchClassicLeague,
+  fetchFixtures,
   BootstrapStatic,
   ManagerInfo,
   ManagerPicks,
@@ -17,8 +18,11 @@ import {
   LiveElement,
   ClassicLeague,
   LeagueMembership,
+  Fixture,
+  SubPair,
   calculateLivePoints,
 } from "@/lib/fpl";
+import { buildConfirmedZero, computeArmbandElement, computeProvisionalAutoSubs } from "@/lib/autoSubs";
 import { CardSkeleton, TableRowSkeleton } from "@/components/Skeleton";
 import LeaguePanel from "./team/LeaguePanel";
 import TeamPanel from "./team/TeamPanel";
@@ -42,6 +46,7 @@ export default function TeamPage({ managerId }: Props) {
   const [manager, setManager] = useState<ManagerInfo | null>(null);
   const [picks, setPicks] = useState<ManagerPicks | null>(null);
   const [liveData, setLiveData] = useState<LiveGameweek | null>(null);
+  const [fixtures, setFixtures] = useState<Fixture[]>([]);
   const [league, setLeague] = useState<ClassicLeague | null>(null);
   const [enriched, setEnriched] = useState<EnrichedEntry[]>([]);
   const [viewedManager, setViewedManager] = useState<ManagerInfo | null>(null);
@@ -109,10 +114,12 @@ export default function TeamPage({ managerId }: Props) {
     Promise.all([
       fetchManagerPicks(managerId, activeGW),
       fetchLiveGameweek(activeGW),
+      fetchFixtures(activeGW),
     ])
-      .then(([p, live]) => {
+      .then(([p, live, fx]) => {
         setPicks(p);
         setLiveData(live);
+        setFixtures(fx);
         setIsRefreshing(false);
       })
       .catch(() => setIsRefreshing(false));
@@ -125,17 +132,29 @@ export default function TeamPage({ managerId }: Props) {
   }, [activeGW]);
 
   useEffect(() => {
-    if (!league || !liveData) return;
+    if (!league || !liveData || !bootstrap) return;
     const liveMap = new Map<number, LiveElement>();
     liveData.elements.forEach((e) => liveMap.set(e.id, e));
+    const playerMap = new Map(bootstrap.elements.map((p) => [p.id, p]));
+    const confirmedZero = buildConfirmedZero(liveMap, playerMap, fixtures);
     Promise.all(
       league.standings.results.map(async (entry) => {
         try {
           const p = await fetchManagerPicks(entry.entry, activeGW);
+          const subs =
+            p.automatic_subs.length > 0
+              ? p.automatic_subs
+              : computeProvisionalAutoSubs(p.picks, playerMap, confirmedZero);
+          const armbandElement = computeArmbandElement(p.picks, confirmedZero);
           return {
             ...entry,
-            livePoints: calculateLivePoints(p.picks, liveMap, p.active_chip)
-              .total,
+            livePoints: calculateLivePoints(
+              p.picks,
+              liveMap,
+              p.active_chip,
+              subs,
+              armbandElement,
+            ).total,
             chipActive: p.active_chip,
             captain: p.picks.find((pk) => pk.is_captain)?.element,
             entryPicks: p.picks,
@@ -145,7 +164,7 @@ export default function TeamPage({ managerId }: Props) {
         }
       }),
     ).then(setEnriched);
-  }, [league, liveData, activeGW]);
+  }, [league, liveData, activeGW, bootstrap, fixtures]);
 
   useEffect(() => {
     if (viewedId === null) return;
@@ -193,22 +212,34 @@ export default function TeamPage({ managerId }: Props) {
 
   const liveMap = new Map<number, LiveElement>();
   liveData?.elements.forEach((e) => liveMap.set(e.id, e));
-  const { total: liveTotal, bench: liveBench } = picks
-    ? calcScore(picks.picks, liveMap, picks.active_chip)
-    : { total: 0, bench: 0 };
   const playerMap = new Map(bootstrap?.elements.map((p) => [p.id, p]));
   const teamMap = new Map(bootstrap?.teams.map((t) => [t.id, t]));
   const gwEvents = bootstrap?.events || [];
   const maxGW = gwEvents.filter((e) => e.finished || e.is_current).length;
 
+  const confirmedZero = buildConfirmedZero(liveMap, playerMap, fixtures);
+  const subsFor = (p: ManagerPicks | null) => {
+    if (!p) return { subs: [] as SubPair[], armbandElement: null as number | null };
+    const subs =
+      p.automatic_subs.length > 0
+        ? p.automatic_subs
+        : computeProvisionalAutoSubs(p.picks, playerMap, confirmedZero);
+    const armbandElement = computeArmbandElement(p.picks, confirmedZero);
+    return { subs, armbandElement };
+  };
+  const scoreFor = (p: ManagerPicks | null) => {
+    if (!p) return { total: 0, bench: 0 };
+    const { subs, armbandElement } = subsFor(p);
+    return calcScore(p.picks, liveMap, p.active_chip, subs, armbandElement);
+  };
+
+  const { total: liveTotal, bench: liveBench } = scoreFor(picks);
+
   const displayManager = viewedId !== null ? viewedManager : manager;
   const displayPicks = viewedId !== null ? viewedPicks : picks;
   const displayScore =
-    viewedId !== null
-      ? viewedPicks
-        ? calcScore(viewedPicks.picks, liveMap, viewedPicks.active_chip)
-        : { total: 0, bench: 0 }
-      : { total: liveTotal, bench: liveBench };
+    viewedId !== null ? scoreFor(viewedPicks) : { total: liveTotal, bench: liveBench };
+  const { subs: displaySubs, armbandElement: displayArmband } = subsFor(displayPicks);
 
   const setGW = (gw: number) => {
     const p = new URLSearchParams(searchParams.toString());
@@ -258,6 +289,8 @@ export default function TeamPage({ managerId }: Props) {
     loading: isRefreshing || isViewedLoading,
     liveTotal: displayScore.total,
     liveBench: displayScore.bench,
+    subs: displaySubs,
+    armbandElement: displayArmband,
     activeGW,
     maxGW,
     gwEvents,

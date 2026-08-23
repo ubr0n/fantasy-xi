@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import Image from "next/image";
-import type { Pick as FplPick, LiveElement, ManagerPicks } from "@/lib/fpl";
+import type { Pick as FplPick, LiveElement, ManagerPicks, SubPair } from "@/lib/fpl";
 import { getPlayerPhoto, getPositionColor } from "@/lib/fpl";
 
 function PitchCard({
@@ -11,6 +11,7 @@ function PitchCard({
   liveTotal,
   onPlayerClick,
   isBench,
+  isSubbed,
 }: {
   pick: FplPick;
   playerMap: Map<number, any>;
@@ -18,6 +19,7 @@ function PitchCard({
   liveTotal?: number;
   onPlayerClick: (id: number) => void;
   isBench?: boolean;
+  isSubbed?: boolean;
 }) {
   const player = playerMap.get(pick.element);
   const live = liveMap.get(pick.element);
@@ -75,6 +77,26 @@ function PitchCard({
             }}
           >
             {pick.is_captain ? "C" : "V"}
+          </div>
+        )}
+        {isSubbed && (
+          <div
+            className="absolute flex items-center justify-center font-black"
+            style={{
+              top: -2,
+              left: -2,
+              width: 17,
+              height: 17,
+              borderRadius: "50%",
+              background: "#8b5cf6",
+              fontSize: "0.55rem",
+              color: "#fff",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.6)",
+              border: "1.5px solid rgba(0,0,0,0.3)",
+            }}
+            title="Automatic substitution"
+          >
+            ⇄
           </div>
         )}
       </div>
@@ -138,13 +160,16 @@ export default function PitchView({
   liveMap,
   liveTotal,
   onPlayerClick,
+  subs = [],
 }: {
   picks: ManagerPicks;
   playerMap: Map<number, any>;
   liveMap: Map<number, LiveElement>;
   liveTotal?: number;
   onPlayerClick: (id: number) => void;
+  subs?: SubPair[];
 }) {
+  const subbedElements = new Set(subs.flatMap((s) => [s.element_in, s.element_out]));
   const starting = picks.picks
     .filter((p) => p.position <= 11)
     .sort((a, b) => a.position - b.position);
@@ -232,6 +257,7 @@ export default function PitchView({
                   liveMap={liveMap}
                   liveTotal={liveTotal}
                   onPlayerClick={onPlayerClick}
+                  isSubbed={subbedElements.has(pick.element)}
                 />
               ))}
             </div>
@@ -258,6 +284,7 @@ export default function PitchView({
               liveMap={liveMap}
               onPlayerClick={onPlayerClick}
               isBench
+              isSubbed={subbedElements.has(pick.element)}
             />
           ))}
         </div>

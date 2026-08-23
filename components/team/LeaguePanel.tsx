@@ -2,6 +2,7 @@
 "use client";
 import { useState } from "react";
 import type { ClassicLeague, LeagueMembership } from "@/lib/fpl";
+import { liveSeasonTotal } from "@/lib/fpl";
 import type { EnrichedEntry } from "./types";
 import { CHIP_CLASSES } from "./types";
 
@@ -51,8 +52,9 @@ export default function LeaguePanel({
 
   const sorted = [...raw].sort((a, b) => {
     if (sort === "captain") return captainName(a).localeCompare(captainName(b));
-    if (sort === "gw") return b.event_total - a.event_total;
-    if (sort === "total") return b.total - a.total;
+    if (sort === "gw")
+      return (b.livePoints ?? b.event_total) - (a.livePoints ?? a.event_total);
+    if (sort === "total") return liveSeasonTotal(b) - liveSeasonTotal(a);
     if (sort === "chip") {
       const ac = a.chipActive ? 1 : 0;
       const bc = b.chipActive ? 1 : 0;
@@ -246,14 +248,14 @@ export default function LeaguePanel({
                 </div>
 
                 <div className="text-right text-[0.78rem] font-semibold">
-                  {entry.event_total}
+                  {entry.livePoints ?? entry.event_total}
                 </div>
 
                 <div
                   className="text-right text-[0.72rem]"
                   style={{ color: "var(--text-secondary)" }}
                 >
-                  {entry.total}
+                  {liveSeasonTotal(entry)}
                 </div>
               </div>
             );

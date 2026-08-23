@@ -195,6 +195,16 @@ export interface ExplainRow {
   stats: { identifier: string; points: number; value: number }[];
 }
 
+export interface Fixture {
+  id: number;
+  event: number | null;
+  team_h: number;
+  team_a: number;
+  finished: boolean;
+  finished_provisional: boolean;
+  kickoff_time: string | null;
+}
+
 export interface ClassicLeague {
   league: {
     id: number;
@@ -262,6 +272,9 @@ export const fetchClassicLeague = (leagueId: number, page = 1) =>
 
 export const fetchEventStatus = () => fplFetch<EventStatus>('event-status/');
 
+export const fetchFixtures = (eventId: number) =>
+  fplFetch<Fixture[]>(`fixtures/?event=${eventId}`);
+
 export const searchManagers = async (text: string): Promise<ManagerSearchResponse> => {
   const res = await fetch(`/api/search-managers?text=${encodeURIComponent(text)}`);
   if (!res.ok) throw new Error(`Search failed: ${res.status}`);
@@ -300,30 +313,85 @@ export function getPositionColor(elementType: number) {
   return map[elementType] || '#fff';
 }
 
+// Season total with the current gameweek's stale FPL figure swapped out for
+// our live/auto-sub-corrected one, so standings reflect what's actually happening.
+export function liveSeasonTotal(entry: {
+  total: number;
+  event_total: number;
+  livePoints?: number;
+}): number {
+  const liveScore = entry.livePoints ?? entry.event_total;
+  return entry.total - entry.event_total + liveScore;
+}
+
 export function getRankArrow(rank: number, lastRank: number) {
   if (rank < lastRank) return 'up';
   if (rank > lastRank) return 'down';
   return 'same';
 }
 
+export interface SubPair {
+  element_in: number;
+  element_out: number;
+}
+
 export function calculateLivePoints(
   picks: Pick[],
   liveData: Map<number, LiveElement>,
-  activeChip?: string | null
+  activeChip?: string | null,
+  automaticSubs: SubPair[] = [],
+  // Element that gets the captain-tier multiplier this GW. Omit to decide
+  // from raw live minutes (default); pass explicitly (or null) when the
+  // caller has already worked out a fixture-confirmed armband decision.
+  armbandOverride?: number | null
 ): { total: number; bench: number; playing: number } {
+  const isBenchBoost = activeChip === "bboost";
+  // Bench Boost counts the full 15, so FPL never runs auto-subs for that gameweek.
+  const subbedOut = isBenchBoost ? new Set<number>() : new Set(automaticSubs.map((s) => s.element_out));
+  const subbedIn = isBenchBoost ? new Set<number>() : new Set(automaticSubs.map((s) => s.element_in));
+
+  // If the captain didn't play, the armband (and its multiplier) passes to the
+  // vice-captain instead — but only if the vice-captain played.
+  const captainPick = picks.find((p) => p.is_captain);
+  const vicePick = picks.find((p) => p.is_vice_captain);
+
+  let armbandElement: number | null;
+  if (armbandOverride !== undefined) {
+    armbandElement = armbandOverride;
+  } else {
+    const hasPlayed = (pick?: Pick) => {
+      const live = pick && liveData.get(pick.element);
+      return !!live && live.stats.minutes > 0;
+    };
+    if (!captainPick) armbandElement = null;
+    else if (hasPlayed(captainPick)) armbandElement = captainPick.element;
+    else if (hasPlayed(vicePick)) armbandElement = vicePick!.element;
+    else armbandElement = null;
+  }
+  const armbandMultiplier = captainPick?.multiplier ?? 2;
+
   let playing = 0;
   let bench = 0;
-  const isBenchBoost = activeChip === "bboost";
 
   for (const pick of picks) {
     const live = liveData.get(pick.element);
     if (!live) continue;
-    const pts = live.stats.total_points * pick.multiplier;
+    const rawPts = live.stats.total_points;
+
     if (pick.position <= 11) {
-      playing += pts;
+      if (subbedOut.has(pick.element)) continue;
+      const multiplier = pick.element === armbandElement ? armbandMultiplier : pick.multiplier;
+      playing += rawPts * multiplier;
+    } else if (isBenchBoost) {
+      // Informational even though already counted — mirrors FPL's own "Bench Boost" display.
+      bench += rawPts;
+      playing += rawPts;
+    } else if (subbedIn.has(pick.element)) {
+      // No longer "left on the bench" — they're an active part of the XI now.
+      const multiplier = pick.element === armbandElement ? armbandMultiplier : 1;
+      playing += rawPts * multiplier;
     } else {
-      bench += live.stats.total_points;
-      if (isBenchBoost) playing += live.stats.total_points;
+      bench += rawPts;
     }
   }
 

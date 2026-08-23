@@ -1,4 +1,5 @@
-import type { LeagueEntry, Pick as FplPick, LiveElement } from "@/lib/fpl";
+import type { LeagueEntry, Pick as FplPick, LiveElement, SubPair } from "@/lib/fpl";
+import { calculateLivePoints } from "@/lib/fpl";
 
 export type MobileTab = "league" | "team" | "live" | "stats";
 export type RightView = "inplay" | "feed" | "chips" | "ownership";
@@ -39,20 +40,19 @@ export const STAT_META: Record<string, [string, string]> = {
   bonus: ["Bonus Points", "⭐"],
 };
 
-export function calcScore(picks: FplPick[], liveMap: Map<number, LiveElement>, activeChip?: string | null) {
-  let total = 0,
-    bench = 0;
-  const isBenchBoost = activeChip === "bboost";
-  for (const p of picks) {
-    const live = liveMap.get(p.element);
-    if (!live) continue;
-    const rawPts = live.stats.total_points;
-    const pts = rawPts * p.multiplier;
-    if (p.position <= 11) total += pts;
-    else {
-      bench += rawPts;
-      if (isBenchBoost) total += rawPts;
-    }
-  }
+export function calcScore(
+  picks: FplPick[],
+  liveMap: Map<number, LiveElement>,
+  activeChip?: string | null,
+  automaticSubs?: SubPair[],
+  armbandElement?: number | null,
+) {
+  const { total, bench } = calculateLivePoints(
+    picks,
+    liveMap,
+    activeChip,
+    automaticSubs,
+    armbandElement,
+  );
   return { total, bench };
 }

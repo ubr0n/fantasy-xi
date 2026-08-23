@@ -9,7 +9,8 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import type { ManagerInfo, ManagerPicks, LiveElement } from "@/lib/fpl";
+import type { ManagerInfo, ManagerPicks, LiveElement, SubPair } from "@/lib/fpl";
+import { applyEffectiveLineup } from "@/lib/autoSubs";
 import { TableRowSkeleton } from "@/components/Skeleton";
 import { CHIP_LABELS, CHIP_CLASSES } from "./types";
 import PlayerRow from "./PlayerRow";
@@ -25,6 +26,8 @@ export default function TeamPanel({
   loading,
   liveTotal,
   liveBench,
+  subs,
+  armbandElement,
   activeGW,
   maxGW,
   gwEvents,
@@ -45,6 +48,8 @@ export default function TeamPanel({
   loading: boolean;
   liveTotal: number;
   liveBench: number;
+  subs: SubPair[];
+  armbandElement: number | null;
   activeGW: number;
   maxGW: number;
   gwEvents: any[];
@@ -57,6 +62,9 @@ export default function TeamPanel({
   onGoToLeague: () => void;
 }) {
   const m = manager || myManager;
+  const effectivePicks = picks
+    ? applyEffectiveLineup(picks.picks, subs, armbandElement, picks.active_chip === "bboost")
+    : [];
   const [viewMode, setViewMode] = useState<"list" | "pitch">(() => {
     const stored = localStorage.getItem("teamPanelViewMode");
     return stored === "list" || stored === "pitch" ? stored : "list";
@@ -288,7 +296,7 @@ export default function TeamPanel({
                 </div>
               </div>
               {viewMode === "list" ? (
-                picks.picks
+                effectivePicks
                   .filter((p) => p.position <= 11)
                   .sort((a, b) => a.position - b.position)
                   .map((pick) => (
@@ -304,11 +312,12 @@ export default function TeamPanel({
                   ))
               ) : (
                 <PitchView
-                  picks={picks}
+                  picks={{ ...picks, picks: effectivePicks }}
                   playerMap={playerMap}
                   liveMap={liveMap}
                   liveTotal={liveTotal}
                   onPlayerClick={onPlayerClick}
+                  subs={subs}
                 />
               )}
             </div>

@@ -15,12 +15,15 @@ import {
   fetchLiveGameweek,
   fetchBootstrap,
   fetchManagerPicks,
+  fetchFixtures,
   ClassicLeague,
   LeagueEntry,
   LiveElement,
   BootstrapStatic,
   calculateLivePoints,
+  liveSeasonTotal,
 } from "@/lib/fpl";
+import { buildConfirmedZero, computeArmbandElement, computeProvisionalAutoSubs } from "@/lib/autoSubs";
 import { Skeleton, TableRowSkeleton } from "@/components/Skeleton";
 
 interface Props {
@@ -85,23 +88,35 @@ export default function LeaguePage({ leagueId }: Props) {
   }, [leagueId, page]);
 
   const loadLive = useCallback(async () => {
-    if (!currentGW || !league) return;
+    if (!currentGW || !league || !bootstrap) return;
     setLiveLoading(true);
     try {
-      const live = await fetchLiveGameweek(currentGW);
+      const [live, fixtures] = await Promise.all([
+        fetchLiveGameweek(currentGW),
+        fetchFixtures(currentGW),
+      ]);
       setLastRefresh(new Date());
 
       const entries = league.standings.results;
       const liveMap = new Map<number, LiveElement>();
       live.elements.forEach((e) => liveMap.set(e.id, e));
+      const playerMap = new Map(bootstrap.elements.map((p) => [p.id, p]));
+      const confirmedZero = buildConfirmedZero(liveMap, playerMap, fixtures);
 
       const enrichPromises = entries.slice(0, 20).map(async (entry) => {
         try {
           const picks = await fetchManagerPicks(entry.entry, currentGW);
+          const subs =
+            picks.automatic_subs.length > 0
+              ? picks.automatic_subs
+              : computeProvisionalAutoSubs(picks.picks, playerMap, confirmedZero);
+          const armbandElement = computeArmbandElement(picks.picks, confirmedZero);
           const liveScore = calculateLivePoints(
             picks.picks,
             liveMap,
             picks.active_chip,
+            subs,
+            armbandElement,
           );
           const captain = picks.picks.find((p) => p.is_captain)?.element;
           return {
@@ -122,7 +137,7 @@ export default function LeaguePage({ leagueId }: Props) {
     } finally {
       setLiveLoading(false);
     }
-  }, [currentGW, league]);
+  }, [currentGW, league, bootstrap]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -173,7 +188,7 @@ export default function LeaguePage({ leagueId }: Props) {
   const sorted = [...displayEntries].sort((a, b) => {
     switch (sortParam) {
       case "total":
-        return b.total - a.total;
+        return liveSeasonTotal(b) - liveSeasonTotal(a);
       case "event_total":
         return b.event_total - a.event_total;
       case "live":
@@ -440,7 +455,7 @@ export default function LeaguePage({ leagueId }: Props) {
                   </div>
 
                   <div className="text-right font-semibold text-[0.9rem]">
-                    {entry.total}
+                    {liveSeasonTotal(entry)}
                   </div>
 
                   <div className="hide-sm text-right">
