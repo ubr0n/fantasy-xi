@@ -305,10 +305,7 @@ export default function HomePage() {
             style={{ animationDelay: "0.3s" }}
           >
             {stats.map((s, i) => (
-              <div
-                key={i}
-                className="card flex items-center gap-2.5 px-6 py-3"
-              >
+              <div key={i} className="card flex items-center gap-2.5 px-6 py-3">
                 <span className="text-[1.2rem]">{s.icon}</span>
                 <div>
                   <div
@@ -328,12 +325,19 @@ export default function HomePage() {
             ))}
           </div>
         )}
+
+        <p
+          className="animate-fade-in-up text-[0.75rem] mt-8"
+          style={{ color: "var(--text-muted)", animationDelay: "0.35s" }}
+        >
+          Maintained by Shaolin Ragnarok from ABQ FPL
+        </p>
       </section>
 
       {/* Footer */}
       <footer className="px-6 py-8 text-center border-t border-(--border)">
         <p className="text-[0.8rem]" style={{ color: "var(--text-muted)" }}>
-          FPL Live uses the unofficial Fantasy Premier League API. Not
+          Himal XI uses the unofficial Fantasy Premier League API. Not
           affiliated with the Premier League or FPL.
         </p>
       </footer>

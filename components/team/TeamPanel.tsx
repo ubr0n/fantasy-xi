@@ -67,7 +67,7 @@ export default function TeamPanel({
   }, [viewMode]);
 
   return (
-    <div className="flex flex-col gap-2.5 h-[calc(100vh-6rem)] overflow-y-auto no-scrollbar">
+    <div className="flex flex-col gap-2.5 lg:h-[calc(100vh-6rem)] lg:overflow-y-auto no-scrollbar">
       {/* Top bar */}
       <div className="flex items-center gap-2 h-fit shrink-0">
         {isMobile && (

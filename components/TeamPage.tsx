@@ -292,7 +292,7 @@ export default function TeamPage({ managerId }: Props) {
   return (
     <>
       {isMobile ? (
-        <div className="min-h-screen pb-18">
+        <div className="min-h-screen pb-24">
           <div className="pt-18 px-3 pb-4">
             {mobileTab === "league" && <LeaguePanel {...leaguePanelProps} />}
             {mobileTab === "team" && <TeamPanel {...teamPanelProps} />}

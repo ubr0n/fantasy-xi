@@ -191,7 +191,7 @@ function LiveFeedView({
           {events.length} events
         </span>
       </div>
-      <div className="overflow-y-auto h-full">
+      <div className="lg:overflow-y-auto lg:h-full">
         {events.map((ev) => {
           const player = playerMap.get(ev.playerId);
           const team = player ? teamMap.get(player.team) : null;
@@ -309,11 +309,11 @@ export function InPlayView({
     );
 
   return (
-    <div className="card flex flex-col overflow-auto">
+    <div className="card flex flex-col lg:overflow-auto">
       <div className="px-[0.9rem] py-[0.6rem] border-b border-(--border)">
         <span className="font-bold text-[0.78rem]">Top Players This GW</span>
       </div>
-      <div className="overflow-y-auto h-full">
+      <div className="lg:overflow-y-auto lg:h-full">
         {inPlay.map((el) => {
           const player = playerMap.get(el.id);
           const team = player ? teamMap.get(player.team) : null;
@@ -374,11 +374,11 @@ export function InPlayView({
 function ChipsView({ enriched }: { enriched: EnrichedEntry[] }) {
   const withChips = enriched.filter((e) => e.chipActive);
   return (
-    <div className="card overflow-auto">
+    <div className="card lg:overflow-auto">
       <div className="px-[0.9rem] py-[0.6rem] border-b border-(--border)">
         <span className="font-bold text-[0.78rem]">Active Chips</span>
       </div>
-      <div className="overflow-y-auto h-full">
+      <div className="lg:overflow-y-auto lg:h-full">
         {withChips.length === 0 ? (
           <div
             className="p-6 text-center text-[0.82rem]"
@@ -454,14 +454,14 @@ function OwnershipView({
     );
 
   return (
-    <div className="card overflow-auto flex flex-col">
+    <div className="card flex flex-col lg:overflow-auto">
       <div className="flex items-center gap-1.5 px-[0.9rem] py-[0.6rem] border-b border-(--border)">
         <span className="font-bold text-[0.78rem]">League Ownership</span>
         <span className="text-[0.65rem]" style={{ color: "var(--text-muted)" }}>
           ({total} managers)
         </span>
       </div>
-      <div className="overflow-y-auto h-full">
+      <div className="lg:overflow-y-auto lg:h-full">
         {top.map(([id, count]) => {
           const player = playerMap.get(id);
           const caps = captained.get(id) || 0;
@@ -547,7 +547,7 @@ export default function StatsPanel({
   const feedEvents = useLiveFeed(liveData, picks);
 
   return (
-    <div className="flex flex-col gap-2.5 max-h-[calc(100vh-6rem)]">
+    <div className="flex flex-col gap-2.5 lg:max-h-[calc(100vh-6rem)]">
       <div
         className="flex gap-0.75 rounded-[10px] p-0.75"
         style={{ background: "var(--bg-subtle)" }}
