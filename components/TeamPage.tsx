@@ -11,6 +11,7 @@ import {
   fetchBootstrap,
   fetchClassicLeague,
   fetchFixtures,
+  fetchAllFixtures,
   BootstrapStatic,
   ManagerInfo,
   ManagerPicks,
@@ -47,6 +48,7 @@ export default function TeamPage({ managerId }: Props) {
   const [picks, setPicks] = useState<ManagerPicks | null>(null);
   const [liveData, setLiveData] = useState<LiveGameweek | null>(null);
   const [fixtures, setFixtures] = useState<Fixture[]>([]);
+  const [allFixtures, setAllFixtures] = useState<Fixture[]>([]);
   const [league, setLeague] = useState<ClassicLeague | null>(null);
   const [enriched, setEnriched] = useState<EnrichedEntry[]>([]);
   const [viewedManager, setViewedManager] = useState<ManagerInfo | null>(null);
@@ -86,6 +88,12 @@ export default function TeamPage({ managerId }: Props) {
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
+  }, []);
+
+  useEffect(() => {
+    fetchAllFixtures()
+      .then(setAllFixtures)
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -291,6 +299,7 @@ export default function TeamPage({ managerId }: Props) {
     liveBench: displayScore.bench,
     subs: displaySubs,
     armbandElement: displayArmband,
+    allFixtures,
     activeGW,
     maxGW,
     gwEvents,

@@ -68,6 +68,19 @@ export interface Player {
   status: string;
   news: string;
   code: number;
+  ep_next: string;
+  ep_this: string;
+  chance_of_playing_next_round: number | null;
+  chance_of_playing_this_round: number | null;
+  minutes: number;
+  expected_goals_per_90: number;
+  expected_assists_per_90: number;
+  expected_goal_involvements_per_90: number;
+  ict_index_rank: number;
+  transfers_in_event: number;
+  transfers_out_event: number;
+  value_form: string;
+  value_season: string;
 }
 
 export interface ElementType {
@@ -203,6 +216,8 @@ export interface Fixture {
   finished: boolean;
   finished_provisional: boolean;
   kickoff_time: string | null;
+  team_h_difficulty: number;
+  team_a_difficulty: number;
 }
 
 export interface ClassicLeague {
@@ -274,6 +289,8 @@ export const fetchEventStatus = () => fplFetch<EventStatus>('event-status/');
 
 export const fetchFixtures = (eventId: number) =>
   fplFetch<Fixture[]>(`fixtures/?event=${eventId}`);
+
+export const fetchAllFixtures = () => fplFetch<Fixture[]>('fixtures/');
 
 export const searchManagers = async (text: string): Promise<ManagerSearchResponse> => {
   const res = await fetch(`/api/search-managers?text=${encodeURIComponent(text)}`);

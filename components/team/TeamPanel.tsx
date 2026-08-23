@@ -9,12 +9,13 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import type { ManagerInfo, ManagerPicks, LiveElement, SubPair } from "@/lib/fpl";
+import type { ManagerInfo, ManagerPicks, LiveElement, SubPair, Fixture } from "@/lib/fpl";
 import { applyEffectiveLineup } from "@/lib/autoSubs";
 import { TableRowSkeleton } from "@/components/Skeleton";
 import { CHIP_LABELS, CHIP_CLASSES } from "./types";
 import PlayerRow from "./PlayerRow";
 import PitchView from "./PitchView";
+import PredictionsView from "./PredictionsView";
 
 export default function TeamPanel({
   manager,
@@ -28,6 +29,7 @@ export default function TeamPanel({
   liveBench,
   subs,
   armbandElement,
+  allFixtures,
   activeGW,
   maxGW,
   gwEvents,
@@ -50,6 +52,7 @@ export default function TeamPanel({
   liveBench: number;
   subs: SubPair[];
   armbandElement: number | null;
+  allFixtures: Fixture[];
   activeGW: number;
   maxGW: number;
   gwEvents: any[];
@@ -350,6 +353,15 @@ export default function TeamPanel({
             )}
           </>
         )}
+      </div>
+      <div className="shrink-0">
+        <PredictionsView
+          displayPicks={picks}
+          playerMap={playerMap}
+          allFixtures={allFixtures}
+          activeGW={activeGW}
+          onPlayerClick={onPlayerClick}
+        />
       </div>
     </div>
   );
