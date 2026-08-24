@@ -1,28 +1,25 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import {
-  fetchManager,
-  fetchManagerPicks,
-  fetchLiveGameweek,
-  fetchBootstrap,
-  fetchClassicLeague,
-  fetchFixtures,
-  fetchAllFixtures,
-  BootstrapStatic,
-  ManagerInfo,
   ManagerPicks,
-  LiveGameweek,
   LiveElement,
-  ClassicLeague,
   LeagueMembership,
-  Fixture,
   SubPair,
   calculateLivePoints,
 } from "@/lib/fpl";
+import {
+  allFixturesQueryOptions,
+  bootstrapQueryOptions,
+  classicLeagueQueryOptions,
+  fixturesQueryOptions,
+  liveGameweekQueryOptions,
+  managerPicksQueryOptions,
+  managerQueryOptions,
+} from "@/lib/queries";
 import { buildConfirmedZero, computeArmbandElement, computeProvisionalAutoSubs } from "@/lib/autoSubs";
 import { CardSkeleton, TableRowSkeleton } from "@/components/Skeleton";
 import LeaguePanel from "./team/LeaguePanel";
@@ -42,31 +39,9 @@ export default function TeamPage({ managerId }: Props) {
   const gwParam = searchParams.get("gw");
   const leagueParam = searchParams.get("league");
 
-  const [bootstrap, setBootstrap] = useState<BootstrapStatic | null>(null);
-  const [manager, setManager] = useState<ManagerInfo | null>(null);
-  const [picks, setPicks] = useState<ManagerPicks | null>(null);
-  const [liveData, setLiveData] = useState<LiveGameweek | null>(null);
-  const [fixtures, setFixtures] = useState<Fixture[]>([]);
-  const [allFixtures, setAllFixtures] = useState<Fixture[]>([]);
-  const [league, setLeague] = useState<ClassicLeague | null>(null);
-  const [enriched, setEnriched] = useState<EnrichedEntry[]>([]);
-  const [viewedManager, setViewedManager] = useState<ManagerInfo | null>(null);
-  const [viewedPicks, setViewedPicks] = useState<ManagerPicks | null>(null);
-  const [currentGW, setCurrentGW] = useState(0);
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [pickAttempted, setPickAttempted] = useState(false);
-  const [error, setError] = useState("");
   const [selectedPlayer, setSelectedPlayer] = useState<number | null>(null);
   const [rightView, setRightView] = useState<RightView>("inplay");
   const [isMobile, setIsMobile] = useState(false);
-
-  // Discard a poll's response if a newer poll has since been kicked off — a
-  // slow response landing after a fresher one would otherwise overwrite
-  // current totals/subs with stale data.
-  const picksRequestId = useRef(0);
-  const leagueRequestId = useRef(0);
-  const viewedRequestId = useRef(0);
 
   // These mirror URL query params but live in local state and are synced back
   // to the URL bar with history.replaceState instead of router.replace. Every
@@ -95,6 +70,21 @@ export default function TeamPage({ managerId }: Props) {
     window.history.replaceState(null, "", `${pathname}?${p.toString()}`);
   };
 
+  const allFixturesQuery = useQuery(allFixturesQueryOptions());
+  const bootstrapQuery = useQuery(bootstrapQueryOptions());
+  const managerQuery = useQuery(managerQueryOptions(managerId));
+
+  const bootstrap = bootstrapQuery.data;
+  const manager = managerQuery.data ?? null;
+  const allFixtures = allFixturesQuery.data ?? [];
+
+  const currentGW = bootstrap
+    ? bootstrap.events.find((e) => e.is_current)?.id ||
+      bootstrap.events.find((e) => e.is_next)?.id ||
+      1
+    : 0;
+  const activeGW = gwOverride || currentGW;
+
   const myLeagues: LeagueMembership[] = manager?.leagues?.classic || [];
   const leagueId =
     selectedLeagueId ??
@@ -102,9 +92,66 @@ export default function TeamPage({ managerId }: Props) {
     myLeagues.find((l) => l.id > 1000)?.id ??
     myLeagues[0]?.id;
 
-  const activeGW = gwOverride || currentGW;
-  const isLoading = !manager && !error;
-  const isViewedLoading = viewedId !== null && viewedManager?.id !== viewedId;
+  const leagueQuery = useQuery(classicLeagueQueryOptions(leagueId ?? null, 1));
+  const league = leagueQuery.data ?? null;
+
+  const picksQuery = useQuery(managerPicksQueryOptions(managerId, activeGW, true));
+  const liveQuery = useQuery(liveGameweekQueryOptions(activeGW));
+  const fixturesQuery = useQuery(fixturesQueryOptions(activeGW));
+  const picks = picksQuery.data ?? null;
+  const liveData = liveQuery.data ?? null;
+  const fixtures = fixturesQuery.data ?? [];
+
+  const viewedManagerQuery = useQuery(managerQueryOptions(viewedId));
+  const viewedPicksQuery = useQuery(managerPicksQueryOptions(viewedId, activeGW, false));
+  const viewedManager = viewedManagerQuery.data ?? null;
+  const viewedPicks = viewedPicksQuery.data ?? null;
+
+  const entries = useMemo(() => league?.standings.results ?? [], [league]);
+  // Only the top 20 get a live-enriched fetch — one request per entry for an
+  // entire league would burst dozens of concurrent requests at a single
+  // serverless function on every page load. Entries beyond that keep their
+  // static GW total instead of being dropped from the standings.
+  const enrichPicksQueries = useQueries({
+    queries: entries
+      .slice(0, 20)
+      .map((entry) => managerPicksQueryOptions(entry.entry, activeGW, true)),
+  });
+
+  const enriched: EnrichedEntry[] = useMemo(() => {
+    if (!liveData || !bootstrap) return [];
+    const liveMap = new Map<number, LiveElement>();
+    liveData.elements.forEach((e) => liveMap.set(e.id, e));
+    const playerMap = new Map(bootstrap.elements.map((p) => [p.id, p]));
+    const confirmedZero = buildConfirmedZero(liveMap, playerMap, fixtures);
+
+    return entries.map((entry, i) => {
+      const p = i < 20 ? enrichPicksQueries[i]?.data : undefined;
+      if (!p) return { ...entry };
+      const subs =
+        p.automatic_subs.length > 0
+          ? p.automatic_subs
+          : computeProvisionalAutoSubs(p.picks, playerMap, confirmedZero);
+      const armbandElement = computeArmbandElement(p.picks, confirmedZero);
+      return {
+        ...entry,
+        livePoints: calculateLivePoints(
+          p.picks,
+          liveMap,
+          p.active_chip,
+          subs,
+          armbandElement,
+        ).total,
+        chipActive: p.active_chip,
+        captain: p.picks.find((pk) => pk.is_captain)?.element,
+        entryPicks: p.picks,
+      };
+    });
+    // enrichPicksQueries' identity changes every render; its .data values are
+    // what actually determine when this should recompute, so listing them
+    // individually would be noise — silenced deliberately.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entries, liveData, bootstrap, fixtures]);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 1024);
@@ -113,113 +160,13 @@ export default function TeamPage({ managerId }: Props) {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  useEffect(() => {
-    fetchAllFixtures()
-      .then(setAllFixtures)
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    Promise.all([fetchBootstrap(), fetchManager(managerId)])
-      .then(([bs, mgr]) => {
-        const gw =
-          bs.events.find((e) => e.is_current)?.id ||
-          bs.events.find((e) => e.is_next)?.id ||
-          1;
-        setBootstrap(bs);
-        setManager(mgr);
-        setCurrentGW(gw);
-      })
-      .catch(() => setError("Failed to load manager data."));
-  }, [managerId]);
-
-  useEffect(() => {
-    if (!leagueId) return;
-    fetchClassicLeague(leagueId)
-      .then(setLeague)
-      .catch(() => {});
-  }, [leagueId]);
-
-  useEffect(() => {
-    if (!activeGW) return;
-    const requestId = ++picksRequestId.current;
-    Promise.all([
-      fetchManagerPicks(managerId, activeGW),
-      fetchLiveGameweek(activeGW),
-      fetchFixtures(activeGW),
-    ])
-      .then(([p, live, fx]) => {
-        if (requestId !== picksRequestId.current) return;
-        setPicks(p);
-        setLiveData(live);
-        setFixtures(fx);
-        setIsRefreshing(false);
-        setPickAttempted(true);
-      })
-      .catch(() => {
-        if (requestId === picksRequestId.current) {
-          setIsRefreshing(false);
-          setPickAttempted(true);
-        }
-      });
-  }, [activeGW, managerId, refreshKey]);
-
-  useEffect(() => {
-    if (!activeGW) return;
-    const id = setInterval(() => setRefreshKey((k) => k + 1), 90000);
-    return () => clearInterval(id);
-  }, [activeGW]);
-
-  useEffect(() => {
-    if (!league || !liveData || !bootstrap) return;
-    const requestId = ++leagueRequestId.current;
-    const liveMap = new Map<number, LiveElement>();
-    liveData.elements.forEach((e) => liveMap.set(e.id, e));
-    const playerMap = new Map(bootstrap.elements.map((p) => [p.id, p]));
-    const confirmedZero = buildConfirmedZero(liveMap, playerMap, fixtures);
-    Promise.all(
-      league.standings.results.map(async (entry, i) => {
-        if (i >= 20) return { ...entry };
-        try {
-          const p = await fetchManagerPicks(entry.entry, activeGW);
-          const subs =
-            p.automatic_subs.length > 0
-              ? p.automatic_subs
-              : computeProvisionalAutoSubs(p.picks, playerMap, confirmedZero);
-          const armbandElement = computeArmbandElement(p.picks, confirmedZero);
-          return {
-            ...entry,
-            livePoints: calculateLivePoints(
-              p.picks,
-              liveMap,
-              p.active_chip,
-              subs,
-              armbandElement,
-            ).total,
-            chipActive: p.active_chip,
-            captain: p.picks.find((pk) => pk.is_captain)?.element,
-            entryPicks: p.picks,
-          };
-        } catch {
-          return { ...entry };
-        }
-      }),
-    ).then((results) => {
-      if (requestId === leagueRequestId.current) setEnriched(results);
-    });
-  }, [league, liveData, activeGW, bootstrap, fixtures]);
-
-  useEffect(() => {
-    if (viewedId === null) return;
-    const requestId = ++viewedRequestId.current;
-    Promise.all([fetchManager(viewedId), fetchManagerPicks(viewedId, activeGW)])
-      .then(([mgr, p]) => {
-        if (requestId !== viewedRequestId.current) return;
-        setViewedManager(mgr);
-        setViewedPicks(p);
-      })
-      .catch(() => {});
-  }, [viewedId, activeGW]);
+  const isLoading = managerQuery.isLoading;
+  const isError = managerQuery.isError;
+  const isViewedLoading = viewedId !== null && viewedManager?.id !== viewedId;
+  const isOwnTeamLoading = viewedId === null && picksQuery.isLoading;
+  // True during a background refetch (poll or manual refresh) once we already
+  // have data — distinct from the initial load, which shows the page skeleton.
+  const isRefreshing = picksQuery.isFetching && !picksQuery.isLoading;
 
   if (isLoading)
     return (
@@ -241,14 +188,16 @@ export default function TeamPage({ managerId }: Props) {
       </div>
     );
 
-  if (error || !manager)
+  if (isError || !manager)
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
         <div className="text-5xl">😅</div>
         <h2 style={{ fontFamily: "var(--font-display)", fontSize: "2rem" }}>
           Manager Not Found
         </h2>
-        <p style={{ color: "var(--text-muted)" }}>{error}</p>
+        <p style={{ color: "var(--text-muted)" }}>
+          {isError ? "Failed to load manager data." : ""}
+        </p>
         <Link href="/">
           <button className="btn-primary">← Back to Search</button>
         </Link>
@@ -280,8 +229,8 @@ export default function TeamPage({ managerId }: Props) {
 
   const { total: liveTotal, bench: liveBench } = scoreFor(picks);
   const liveLoading = !liveData;
-  const enrichedLoading = !!league && enriched.length === 0;
-  const isOwnTeamLoading = viewedId === null && !pickAttempted;
+  const enrichedLoading =
+    !!league && enrichPicksQueries.length > 0 && enrichPicksQueries.every((q) => q.data === undefined);
 
   const displayManager = viewedId !== null ? viewedManager : manager;
   const displayPicks = viewedId !== null ? viewedPicks : picks;
@@ -301,8 +250,6 @@ export default function TeamPage({ managerId }: Props) {
     const p = new URLSearchParams(searchParams.toString());
     p.set("league", String(id));
     window.history.replaceState(null, "", `${pathname}?${p.toString()}`);
-    setLeague(null);
-    setEnriched([]);
   };
 
   const handleManagerClick = (entryId: number) => {
@@ -360,8 +307,10 @@ export default function TeamPage({ managerId }: Props) {
     },
     isMobile,
     onRefresh: () => {
-      setIsRefreshing(true);
-      setRefreshKey((k) => k + 1);
+      picksQuery.refetch();
+      liveQuery.refetch();
+      fixturesQuery.refetch();
+      enrichPicksQueries.forEach((q) => q.refetch());
     },
     onGoToLeague: () => setMobileTab("league"),
   };

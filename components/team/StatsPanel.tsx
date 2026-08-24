@@ -420,7 +420,7 @@ function ChipsView({
         ) : (
           withChips.map((e) => (
             <div
-              key={e.id}
+              key={e.entry}
               className="row-item flex items-center gap-2 px-[0.9rem] py-[0.48rem]"
             >
               <div className="flex-1 min-w-0">

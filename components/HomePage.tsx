@@ -1,13 +1,10 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { Search, ArrowRight } from "lucide-react";
-import {
-  fetchBootstrap,
-  searchManagers,
-  BootstrapStatic,
-  ManagerSearchResult,
-} from "@/lib/fpl";
+import { searchManagers, ManagerSearchResult } from "@/lib/fpl";
+import { bootstrapQueryOptions } from "@/lib/queries";
 import { Skeleton } from "@/components/Skeleton";
 
 export default function HomePage() {
@@ -15,17 +12,12 @@ export default function HomePage() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [bootstrap, setBootstrap] = useState<BootstrapStatic | null>(null);
   const [suggestions, setSuggestions] = useState<ManagerSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    fetchBootstrap()
-      .then((d) => setBootstrap(d))
-      .catch(() => {});
-  }, []);
+  const { data: bootstrap } = useQuery(bootstrapQueryOptions());
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {

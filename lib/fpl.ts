@@ -235,7 +235,6 @@ export interface ClassicLeague {
 }
 
 export interface LeagueEntry {
-  id: number;
   event_total: number;
   player_name: string;
   rank: number;

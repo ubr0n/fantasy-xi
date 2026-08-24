@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { QueryProvider } from "@/components/QueryProvider";
 import Navbar from "@/components/Navbar";
 import AppBackground from "@/components/AppBackground";
 
@@ -114,11 +115,13 @@ export default function RootLayout({
             __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
           }}
         />
-        <ThemeProvider>
-          <AppBackground />
-          <Navbar />
-          <main className="relative z-1">{children}</main>
-        </ThemeProvider>
+        <QueryProvider>
+          <ThemeProvider>
+            <AppBackground />
+            <Navbar />
+            <main className="relative z-1">{children}</main>
+          </ThemeProvider>
+        </QueryProvider>
       </body>
     </html>
   );

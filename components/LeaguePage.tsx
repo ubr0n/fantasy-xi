@@ -1,5 +1,6 @@
 "use client";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useMemo, useState } from "react";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
@@ -11,18 +12,18 @@ import {
   Award,
 } from "lucide-react";
 import {
-  fetchClassicLeague,
-  fetchLiveGameweek,
-  fetchBootstrap,
-  fetchManagerPicks,
-  fetchFixtures,
-  ClassicLeague,
   LeagueEntry,
   LiveElement,
-  BootstrapStatic,
   calculateLivePoints,
   liveSeasonTotal,
 } from "@/lib/fpl";
+import {
+  bootstrapQueryOptions,
+  classicLeagueQueryOptions,
+  fixturesQueryOptions,
+  liveGameweekQueryOptions,
+  managerPicksQueryOptions,
+} from "@/lib/queries";
 import { buildConfirmedZero, computeArmbandElement, computeProvisionalAutoSubs } from "@/lib/autoSubs";
 import { Skeleton, TableRowSkeleton } from "@/components/Skeleton";
 
@@ -52,15 +53,7 @@ export default function LeaguePage({ leagueId }: Props) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
 
-  const [league, setLeague] = useState<ClassicLeague | null>(null);
-  const [bootstrap, setBootstrap] = useState<BootstrapStatic | null>(null);
-  const [enriched, setEnriched] = useState<EnrichedEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [liveLoading, setLiveLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [currentGW, setCurrentGW] = useState(1);
   const [page, setPage] = useState(1);
-  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   // Local state kept in sync with the URL via history.replaceState rather
   // than router.replace — the latter forces a full server round-trip to
   // re-render the page's Server Component (it does an external fetch) on
@@ -68,11 +61,6 @@ export default function LeaguePage({ leagueId }: Props) {
   const [sortParam, setSortParam] = useState<SortKey>(
     () => (searchParams.get("sort") as SortKey) || "rank",
   );
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Discard a loadLive() call's results if a newer call has since started —
-  // otherwise a slow response landing after a fresher one overwrites current
-  // totals/subs with stale data.
-  const liveRequestId = useRef(0);
 
   const setSort = (k: SortKey) => {
     setSortParam(k);
@@ -81,89 +69,79 @@ export default function LeaguePage({ leagueId }: Props) {
     window.history.replaceState(null, "", `${pathname}?${p.toString()}`);
   };
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLoading(true);
-    Promise.all([fetchBootstrap(), fetchClassicLeague(leagueId, page)])
-      .then(([bs, lg]) => {
-        setBootstrap(bs);
-        setLeague(lg);
-        const gw =
-          bs.events.find((e) => e.is_current)?.id ||
-          bs.events.find((e) => e.is_next)?.id ||
-          1;
-        setCurrentGW(gw);
-      })
-      .catch(() => setError("Failed to load league"))
-      .finally(() => setLoading(false));
-  }, [leagueId, page]);
+  const bootstrapQuery = useQuery(bootstrapQueryOptions());
+  const leagueQuery = useQuery(classicLeagueQueryOptions(leagueId, page));
 
-  const loadLive = useCallback(async () => {
-    if (!currentGW || !league || !bootstrap) return;
-    const requestId = ++liveRequestId.current;
-    setLiveLoading(true);
-    try {
-      const [live, fixtures] = await Promise.all([
-        fetchLiveGameweek(currentGW),
-        fetchFixtures(currentGW),
-      ]);
-      if (requestId !== liveRequestId.current) return;
-      setLastRefresh(new Date());
+  const bootstrap = bootstrapQuery.data;
+  const league = leagueQuery.data;
+  const loading = bootstrapQuery.isLoading || leagueQuery.isLoading;
+  const error = bootstrapQuery.isError || leagueQuery.isError ? "Failed to load league" : "";
 
-      const entries = league.standings.results;
-      const liveMap = new Map<number, LiveElement>();
-      live.elements.forEach((e) => liveMap.set(e.id, e));
-      const playerMap = new Map(bootstrap.elements.map((p) => [p.id, p]));
-      const confirmedZero = buildConfirmedZero(liveMap, playerMap, fixtures);
+  const currentGW = bootstrap
+    ? bootstrap.events.find((e) => e.is_current)?.id ||
+      bootstrap.events.find((e) => e.is_next)?.id ||
+      1
+    : 0;
 
-      const enrichPromises = entries.slice(0, 20).map(async (entry) => {
-        try {
-          const picks = await fetchManagerPicks(entry.entry, currentGW);
-          const subs =
-            picks.automatic_subs.length > 0
-              ? picks.automatic_subs
-              : computeProvisionalAutoSubs(picks.picks, playerMap, confirmedZero);
-          const armbandElement = computeArmbandElement(picks.picks, confirmedZero);
-          const liveScore = calculateLivePoints(
-            picks.picks,
-            liveMap,
-            picks.active_chip,
-            subs,
-            armbandElement,
-          );
-          const captain = picks.picks.find((p) => p.is_captain)?.element;
-          return {
-            ...entry,
-            livePoints: liveScore.total,
-            chipActive: picks.active_chip,
-            captain,
-          };
-        } catch {
-          return { ...entry, livePoints: entry.event_total };
-        }
-      });
+  const liveQuery = useQuery(liveGameweekQueryOptions(currentGW));
+  const fixturesQuery = useQuery(fixturesQueryOptions(currentGW));
 
-      const enriched = await Promise.all(enrichPromises);
-      if (requestId !== liveRequestId.current) return;
-      setEnriched(enriched);
-    } catch {
-      // live data may not be available
-    } finally {
-      if (requestId === liveRequestId.current) setLiveLoading(false);
-    }
-  }, [currentGW, league, bootstrap]);
+  const entries = useMemo(() => league?.standings.results ?? [], [league]);
+  // Only the top 20 get a live-enriched fetch — firing one request per entry
+  // for an entire league would burst dozens of concurrent requests at a
+  // single serverless function on every load. Entries beyond that keep their
+  // static GW total instead of being dropped from the table.
+  const picksQueries = useQueries({
+    queries: entries
+      .slice(0, 20)
+      .map((entry) => managerPicksQueryOptions(entry.entry, currentGW, true)),
+  });
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (league && currentGW) loadLive();
-  }, [league, currentGW, loadLive]);
+  const liveLoading =
+    liveQuery.isFetching || fixturesQuery.isFetching || picksQueries.some((q) => q.isFetching);
 
-  useEffect(() => {
-    intervalRef.current = setInterval(loadLive, 90000);
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [loadLive]);
+  const enriched: EnrichedEntry[] = useMemo(() => {
+    if (!liveQuery.data || !bootstrap) return [];
+    const liveMap = new Map<number, LiveElement>();
+    liveQuery.data.elements.forEach((e) => liveMap.set(e.id, e));
+    const playerMap = new Map(bootstrap.elements.map((p) => [p.id, p]));
+    const confirmedZero = buildConfirmedZero(liveMap, playerMap, fixturesQuery.data ?? []);
+
+    return entries.map((entry, i) => {
+      const picks = i < 20 ? picksQueries[i]?.data : undefined;
+      if (!picks) return { ...entry, livePoints: entry.event_total };
+      const subs =
+        picks.automatic_subs.length > 0
+          ? picks.automatic_subs
+          : computeProvisionalAutoSubs(picks.picks, playerMap, confirmedZero);
+      const armbandElement = computeArmbandElement(picks.picks, confirmedZero);
+      const liveScore = calculateLivePoints(
+        picks.picks,
+        liveMap,
+        picks.active_chip,
+        subs,
+        armbandElement,
+      );
+      const captain = picks.picks.find((p) => p.is_captain)?.element;
+      return {
+        ...entry,
+        livePoints: liveScore.total,
+        chipActive: picks.active_chip,
+        captain,
+      };
+    });
+    // picksQueries' identity changes every render; its .data values (via each
+    // query's dataUpdatedAt) are what actually determine when this should
+    // recompute, so listing them individually would be noise — the eslint
+    // rule can't see that, so it's silenced deliberately here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entries, liveQuery.data, bootstrap, fixturesQuery.data]);
+
+  const refresh = () => {
+    liveQuery.refetch();
+    fixturesQuery.refetch();
+    picksQueries.forEach((q) => q.refetch());
+  };
 
   if (loading) {
     return (
@@ -276,11 +254,14 @@ export default function LeaguePage({ leagueId }: Props) {
               className="text-[0.75rem]"
               style={{ color: "var(--text-muted)" }}
             >
-              Updated {lastRefresh.toLocaleTimeString()}
+              Updated{" "}
+              {liveQuery.dataUpdatedAt
+                ? new Date(liveQuery.dataUpdatedAt).toLocaleTimeString()
+                : "—"}
             </span>
             <button
               className="btn-ghost flex items-center gap-1.5"
-              onClick={loadLive}
+              onClick={refresh}
               disabled={liveLoading}
             >
               <RefreshCw
@@ -409,7 +390,7 @@ export default function LeaguePage({ leagueId }: Props) {
 
               return (
                 <div
-                  key={entry.id}
+                  key={entry.entry}
                   className="row-item grid gap-2 px-4 py-3 items-center cursor-pointer"
                   style={{
                     gridTemplateColumns: GRID,
@@ -552,7 +533,7 @@ export default function LeaguePage({ leagueId }: Props) {
                 .filter((e) => e.chipActive)
                 .map((e) => (
                   <div
-                    key={e.id}
+                    key={e.entry}
                     className="flex items-center gap-[5px] rounded-[6px] text-[0.72rem] px-2 py-[2px] border border-(--border)"
                     style={{ background: "var(--bg-card)" }}
                   >
