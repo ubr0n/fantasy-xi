@@ -178,7 +178,8 @@ export default function TeamPage({ managerId }: Props) {
     const playerMap = new Map(bootstrap.elements.map((p) => [p.id, p]));
     const confirmedZero = buildConfirmedZero(liveMap, playerMap, fixtures);
     Promise.all(
-      league.standings.results.map(async (entry) => {
+      league.standings.results.map(async (entry, i) => {
+        if (i >= 20) return { ...entry };
         try {
           const p = await fetchManagerPicks(entry.entry, activeGW);
           const subs =
