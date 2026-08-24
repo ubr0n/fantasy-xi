@@ -120,7 +120,6 @@ function PitchCard({
         className="flex flex-col items-center gap-px w-full"
         style={{
           background: "rgba(0,0,0,0.72)",
-          backdropFilter: "blur(4px)",
           borderRadius: 6,
           padding: compact ? "2px 4px" : "3px 6px",
           boxShadow: "0 2px 6px rgba(0,0,0,0.4)",

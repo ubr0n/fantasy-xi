@@ -14,6 +14,7 @@ export default function AppBackground() {
           filter: "blur(120px)",
           opacity: 0.12,
           background: "radial-gradient(circle, #00d68f 0%, transparent 70%)",
+          transform: "translateZ(0)",
         }}
       />
       <div
@@ -26,6 +27,7 @@ export default function AppBackground() {
           filter: "blur(120px)",
           opacity: 0.08,
           background: "radial-gradient(circle, #7c3aed 0%, transparent 70%)",
+          transform: "translateZ(0)",
         }}
       />
       <div

@@ -13,7 +13,7 @@ export default function Navbar() {
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", onScroll);
+    window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
@@ -27,6 +27,7 @@ export default function Navbar() {
           : "1px solid transparent",
         backdropFilter: scrolled ? "blur(20px)" : "none",
         boxShadow: scrolled ? "var(--shadow-sm)" : "none",
+        transform: "translateZ(0)",
       }}
     >
       <Link href="/" className="no-underline flex items-start gap-2">

@@ -42,6 +42,7 @@ export default function BottomNav({
           backdropFilter: "blur(20px)",
           WebkitBackdropFilter: "blur(20px)",
           padding: 6,
+          transform: "translateZ(0)",
         }}
       >
         {/* Positioned ancestor holds no padding of its own, so the
