@@ -8,7 +8,7 @@ import logo from "@/app/app-logo.png";
 import logoDark from "@/app/app-logo-dark.png";
 
 export default function Navbar() {
-  const { theme, toggle } = useTheme();
+  const { theme, toggle, canToggle } = useTheme();
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -48,17 +48,19 @@ export default function Navbar() {
           </button>
         </Link>
 
-        <button
-          onClick={toggle}
-          className="w-9 h-9 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 border border-(--border)"
-          style={{
-            background: "var(--bg-subtle)",
-            color: "var(--text-secondary)",
-          }}
-          title="Toggle theme"
-        >
-          {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
-        </button>
+        {canToggle && (
+          <button
+            onClick={toggle}
+            className="w-9 h-9 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 border border-(--border)"
+            style={{
+              background: "var(--bg-subtle)",
+              color: "var(--text-secondary)",
+            }}
+            title="Toggle theme"
+          >
+            {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
+          </button>
+        )}
       </div>
     </nav>
   );

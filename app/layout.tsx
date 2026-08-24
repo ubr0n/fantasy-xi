@@ -110,11 +110,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        {/* Applies the persisted/preferred theme class before hydration, so
-            neither theme pays for a post-mount flash or re-render — see
-            ThemeProvider's matching lazy-init read of this same class. */}
+        {/* Applies the theme class before hydration, so the correct theme is
+            visible from the first paint instead of flashing in after mount.
+            Safari is locked to dark — see ThemeProvider for why. */}
         <Script id="theme-init" strategy="beforeInteractive">
-          {`(function(){try{var t=localStorage.getItem('fpl-theme');if(!t){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}if(t==='dark')document.documentElement.classList.add('dark');}catch(e){}})();`}
+          {`(function(){try{var ua=navigator.userAgent;var isSafari=/^((?!chrome|android|crios|fxios|edgios).)*safari/i.test(ua);if(isSafari){document.documentElement.classList.add('dark');return;}var t=localStorage.getItem('fpl-theme');if(!t){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}if(t==='dark')document.documentElement.classList.add('dark');}catch(e){}})();`}
         </Script>
         <script
           type="application/ld+json"
