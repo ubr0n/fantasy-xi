@@ -1,15 +1,17 @@
 "use client";
 import Link from "next/link";
 import { useTheme } from "./ThemeProvider";
-import { Moon, Sun, Users } from "lucide-react";
+import { Moon, Sun, SquarePlus } from "lucide-react";
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import logo from "@/app/app-logo.png";
 import logoDark from "@/app/app-logo-dark.png";
+import AddToHomeScreenModal from "./AddToHomeScreenModal";
 
 export default function Navbar() {
   const { theme, toggle, canToggle } = useTheme();
   const [scrolled, setScrolled] = useState(false);
+  const [showInstallModal, setShowInstallModal] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -18,15 +20,19 @@ export default function Navbar() {
   }, []);
 
   return (
+    <>
     <nav
       className="fixed top-0 left-0 right-0 z-100 flex items-center justify-between px-6 py-3 transition-all duration-300"
       style={{
-        background: scrolled ? "var(--bg-card)" : "transparent",
+        background: scrolled ? "var(--glass-bg)" : "transparent",
         borderBottom: scrolled
-          ? "1px solid var(--border)"
+          ? "1px solid var(--glass-border)"
           : "1px solid transparent",
-        backdropFilter: scrolled ? "blur(20px)" : "none",
-        boxShadow: scrolled ? "var(--shadow-sm)" : "none",
+        boxShadow: scrolled
+          ? "var(--shadow-sm), inset 0 -1px 0 var(--glass-highlight)"
+          : "none",
+        backdropFilter: scrolled ? "blur(20px) saturate(180%)" : "none",
+        WebkitBackdropFilter: scrolled ? "blur(20px) saturate(180%)" : "none",
         transform: "translateZ(0)",
       }}
     >
@@ -41,12 +47,13 @@ export default function Navbar() {
       </Link>
 
       <div className="flex items-center gap-2">
-        <Link href="/" className="no-underline">
-          <button className="btn-ghost flex items-center gap-1.5 px-[0.9rem] py-[0.4rem]">
-            <Users size={14} />
-            <span className="hide-sm">Search</span>
-          </button>
-        </Link>
+        <button
+          className="btn-ghost flex items-center gap-1.5 px-[0.9rem] py-[0.4rem]"
+          onClick={() => setShowInstallModal(true)}
+        >
+          <SquarePlus size={14} />
+          <span className="hide-sm">Add to Home</span>
+        </button>
 
         {canToggle && (
           <button
@@ -63,5 +70,9 @@ export default function Navbar() {
         )}
       </div>
     </nav>
+    {showInstallModal && (
+      <AddToHomeScreenModal onClose={() => setShowInstallModal(false)} />
+    )}
+    </>
   );
 }

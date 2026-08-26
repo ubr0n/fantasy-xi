@@ -27,6 +27,10 @@
   --shadow-md: 0 4px 16px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
   --shadow-lg: 0 8px 32px rgba(0,0,0,0.10), 0 4px 8px rgba(0,0,0,0.06);
   --shadow-glow: 0 0 24px var(--accent-glow);
+  --glass-bg: rgba(255, 255, 255, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.6);
+  --glass-highlight: rgba(255, 255, 255, 0.85);
+  --glass-sheen: rgba(255, 255, 255, 0.35);
   --radius: 16px;
   --radius-sm: 8px;
   --radius-lg: 24px;
@@ -48,6 +52,10 @@
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
   --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
   --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
+  --glass-bg: rgba(24, 24, 38, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-highlight: rgba(255, 255, 255, 0.14);
+  --glass-sheen: rgba(255, 255, 255, 0.06);
 }
 
 /* ── Keyframes (no layer needed) ─────────────────────────────────────────── */
@@ -92,13 +100,20 @@
 
 @layer components {
   .card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
     border-radius: var(--radius);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-md), inset 0 1px 0 var(--glass-highlight);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
     transition: all 0.25s ease;
+    transform: translateZ(0);
   }
-  .card:hover { border-color: var(--border-strong); transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+  .card:hover {
+    border-color: var(--glass-highlight);
+    transform: translateY(-1px) translateZ(0);
+    box-shadow: var(--shadow-lg), inset 0 1px 0 var(--glass-highlight);
+  }
   .card-glow { box-shadow: var(--shadow-md), 0 0 0 1px var(--accent), var(--shadow-glow); }
 
   .btn-primary {
@@ -143,10 +158,12 @@
   .row-item:last-child { border-bottom: none; }
 
   .glass {
-    background: rgba(255,255,255,0.05); backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    box-shadow: inset 0 1px 0 var(--glass-highlight);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
   }
-  .dark .glass { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.07); }
 
   .chip-wildcard { background: rgba(124,58,237,0.15); color: #a78bfa; }
   .chip-freehit { background: rgba(59,130,246,0.15); color: #60a5fa; }

@@ -32,19 +32,30 @@ export default function BottomNav({
       }}
     >
       <div
-        className="w-full pointer-events-auto"
+        className="w-full pointer-events-auto relative overflow-hidden"
         style={{
           maxWidth: 420,
-          background: "var(--bg-card)",
-          border: "1px solid var(--border)",
+          background: "var(--glass-bg)",
+          border: "1px solid var(--glass-border)",
           borderRadius: 24,
-          boxShadow: "var(--shadow-lg)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
+          boxShadow:
+            "var(--shadow-lg), inset 0 1px 0 var(--glass-highlight), inset 0 0 0 1px var(--glass-sheen)",
+          backdropFilter: "blur(24px) saturate(180%)",
+          WebkitBackdropFilter: "blur(24px) saturate(180%)",
           padding: 6,
           transform: "translateZ(0)",
         }}
       >
+        {/* Diagonal sheen — a faint light pass across the glass, like a
+            reflection catching the surface at an angle. */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(115deg, var(--glass-sheen) 0%, transparent 30%, transparent 70%, var(--glass-sheen) 100%)",
+          }}
+        />
+
         {/* Positioned ancestor holds no padding of its own, so the
             sliding highlight's percentage math lines up exactly with
             the flex-basis of the buttons beside it. */}
@@ -57,7 +68,12 @@ export default function BottomNav({
           >
             <div
               className="absolute inset-1 rounded-2xl"
-              style={{ background: "rgba(0, 214, 143, 0.14)" }}
+              style={{
+                background:
+                  "linear-gradient(180deg, rgba(0, 214, 143, 0.22), rgba(0, 214, 143, 0.1))",
+                boxShadow:
+                  "inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 1px 4px rgba(0, 214, 143, 0.18)",
+              }}
             />
           </motion.div>
 
