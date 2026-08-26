@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Share, MoreVertical, SquarePlus, X } from "lucide-react";
+import { isSafariBrowser } from "@/lib/browser";
 
 type Platform = "ios" | "android";
 
@@ -70,11 +71,17 @@ export default function AddToHomeScreenModal({
   onClose: () => void;
 }) {
   const [platform, setPlatform] = useState<Platform>("ios");
+  // Safari's compositor lags badly when this overlay's own blur — sitting on
+  // top of the nav/cards' own backdrop-filter glass — gets torn down on
+  // close. Other iOS browsers (Chrome, Firefox) don't show this, so it's
+  // scoped to Safari specifically rather than dropped everywhere.
+  const [skipBlur, setSkipBlur] = useState(false);
 
   useEffect(() => {
     const ua = navigator.userAgent;
     if (/android/i.test(ua)) setPlatform("android");
     else setPlatform("ios");
+    setSkipBlur(isSafariBrowser());
   }, []);
 
   useEffect(() => {
@@ -88,7 +95,11 @@ export default function AddToHomeScreenModal({
   return (
     <div
       className="fixed inset-0 z-1000 flex items-end justify-center"
-      style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(6px)" }}
+      style={{
+        background: "rgba(0,0,0,0.65)",
+        backdropFilter: skipBlur ? "none" : "blur(6px)",
+        WebkitBackdropFilter: skipBlur ? "none" : "blur(6px)",
+      }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}

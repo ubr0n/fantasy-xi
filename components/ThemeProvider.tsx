@@ -1,5 +1,6 @@
 'use client';
 import { createContext, useContext, useEffect, useState } from 'react';
+import { isSafariBrowser } from '@/lib/browser';
 
 type Theme = 'dark' | 'light';
 const ThemeCtx = createContext<{ theme: Theme; toggle: () => void; canToggle: boolean }>({
@@ -12,8 +13,6 @@ const ThemeCtx = createContext<{ theme: Theme; toggle: () => void; canToggle: bo
 // forces Safari to dark before first paint — light mode has a known,
 // unresolved rendering issue on Safari/WebKit we haven't been able to fix,
 // so Safari is locked to dark and the toggle is hidden there instead.
-const isSafariBrowser = () =>
-  /^((?!chrome|android|crios|fxios|edgios).)*safari/i.test(navigator.userAgent);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // Both must start at the same fixed values the server renders — reading
