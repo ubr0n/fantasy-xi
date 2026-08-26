@@ -8,7 +8,6 @@ import {
   getPositionName,
   formatCost,
 } from "@/lib/fpl";
-import { useIsSafari } from "@/lib/browser";
 import type { EnrichedEntry } from "./types";
 import { STAT_META } from "./types";
 
@@ -34,11 +33,6 @@ export default function PlayerModal({
   const live = liveMap.get(playerId);
   const s = live?.stats;
   const posColor = player ? getPositionColor(player.element_type) : "#fff";
-
-  // Safari's compositor lags badly recomposing this overlay against the
-  // page's other backdrop-filter glass underneath. Other iOS browsers
-  // (Chrome, Firefox) don't show this, so it's scoped to Safari specifically.
-  const skipBlur = useIsSafari();
 
   const breakdown: {
     label: string;
@@ -78,11 +72,7 @@ export default function PlayerModal({
   return (
     <div
       className="fixed inset-0 z-1000 flex items-end justify-center"
-      style={{
-        background: "rgba(0,0,0,0.65)",
-        backdropFilter: skipBlur ? "none" : "blur(6px)",
-        WebkitBackdropFilter: skipBlur ? "none" : "blur(6px)",
-      }}
+      style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(6px)" }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}

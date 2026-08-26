@@ -70,20 +70,6 @@ export default function TeamPage({ managerId }: Props) {
     window.history.replaceState(null, "", `${pathname}?${p.toString()}`);
   };
 
-  // Tapping "My Team" while looking at a teammate's team should jump back to
-  // your own team, not leave the viewed manager's picks showing under the
-  // now-reselected tab.
-  const handleBottomNavChange = (tab: MobileTab) => {
-    setMobileTabState(tab);
-    const p = new URLSearchParams(searchParams.toString());
-    p.set("tab", tab);
-    if (tab === "team" && viewedId !== null) {
-      setViewedId(null);
-      p.delete("viewed");
-    }
-    window.history.replaceState(null, "", `${pathname}?${p.toString()}`);
-  };
-
   const allFixturesQuery = useQuery(allFixturesQueryOptions());
   const bootstrapQuery = useQuery(bootstrapQueryOptions());
   const managerQuery = useQuery(managerQueryOptions(managerId));
@@ -159,7 +145,6 @@ export default function TeamPage({ managerId }: Props) {
         chipActive: p.active_chip,
         captain: p.picks.find((pk) => pk.is_captain)?.element,
         entryPicks: p.picks,
-        subs,
       };
     });
     // enrichPicksQueries' identity changes every render; its .data values are
@@ -292,7 +277,6 @@ export default function TeamPage({ managerId }: Props) {
     leagueId: leagueId ?? null,
     onLeagueChange: changeLeague,
     playerMap,
-    fixtures,
   };
 
   const teamPanelProps = {
@@ -364,7 +348,7 @@ export default function TeamPage({ managerId }: Props) {
             )}
             {mobileTab === "stats" && <StatsPanel {...statsPanelProps} />}
           </div>
-          <BottomNav active={mobileTab} onChange={handleBottomNavChange} />
+          <BottomNav active={mobileTab} onChange={setMobileTab} />
         </div>
       ) : (
         <div

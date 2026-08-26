@@ -115,60 +115,6 @@ export function computeProvisionalAutoSubs(
   return subs;
 }
 
-/** The elements actually counting towards a score this GW — the starting XI with
- * subs applied, or all 15 for Bench Boost. Mirrors calculateLivePoints' own rules. */
-export function effectiveStartingElements(
-  picks: Pick[],
-  subs: SubPair[],
-  isBenchBoost: boolean
-): number[] {
-  if (isBenchBoost) return picks.map((p) => p.element);
-  const subbedOut = new Set(subs.map((s) => s.element_out));
-  const subbedIn = subs.map((s) => s.element_in);
-  return picks
-    .filter((p) => p.position <= 11 && !subbedOut.has(p.element))
-    .map((p) => p.element)
-    .concat(subbedIn);
-}
-
-/**
- * How many of an effective lineup's fixtures are currently live vs. yet to
- * kick off this gameweek — a double-gameweek team counts as "live" once any
- * one of its fixtures has started, and "done" only once every leg has.
- */
-export function computeLiveProgress(
-  elements: number[],
-  playerMap: Map<number, Player>,
-  fixtures: Fixture[]
-): { inPlay: number; toPlay: number } {
-  const statusCache = new Map<number, "upcoming" | "live" | "done">();
-  const statusForTeam = (teamId: number) => {
-    let status = statusCache.get(teamId);
-    if (status) return status;
-    const teamFixtures = fixtures.filter((f) => f.team_h === teamId || f.team_a === teamId);
-    if (teamFixtures.length === 0 || teamFixtures.every((f) => f.finished_provisional)) {
-      status = "done";
-    } else if (teamFixtures.some((f) => f.started && !f.finished_provisional)) {
-      status = "live";
-    } else {
-      status = "upcoming";
-    }
-    statusCache.set(teamId, status);
-    return status;
-  };
-
-  let inPlay = 0;
-  let toPlay = 0;
-  for (const element of elements) {
-    const team = playerMap.get(element)?.team;
-    if (team === undefined) continue;
-    const status = statusForTeam(team);
-    if (status === "live") inPlay++;
-    else if (status === "upcoming") toPlay++;
-  }
-  return { inPlay, toPlay };
-}
-
 /**
  * Re-derives each pick's display `position` (<=11 starting, >11 bench) and
  * `multiplier` after applying substitutions, so existing "position <= 11"

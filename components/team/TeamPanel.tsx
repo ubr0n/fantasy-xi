@@ -161,12 +161,14 @@ export default function TeamPanel({
               >
                 {m.player_first_name} {m.player_last_name}
               </div>
-              <div
-                className="text-[0.75rem]"
-                style={{ color: "var(--text-secondary)" }}
-              >
-                {m.name}
-              </div>
+              {!compact && (
+                <div
+                  className="text-[0.75rem]"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  {m.name}
+                </div>
+              )}
               {picks?.active_chip && (
                 <span
                   className={`badge ${CHIP_CLASSES[picks.active_chip] || "badge-purple"} ${compact ? "mt-0.5" : "mt-1"} inline-flex`}

@@ -1,7 +1,6 @@
 "use client";
 import { motion } from "framer-motion";
 import { Trophy, Users, Zap, Activity } from "lucide-react";
-import { useIsSafari } from "@/lib/browser";
 import type { MobileTab } from "./types";
 
 const TABS = [
@@ -24,11 +23,6 @@ export default function BottomNav({
     0,
     TABS.findIndex((t) => t.key === active),
   );
-  // This nav is mounted the whole time on mobile, so its backdrop-filter
-  // runs continuously — on Safari that's expensive enough to noticeably lag
-  // unrelated things elsewhere on the page (e.g. a modal closing). Other iOS
-  // browsers don't show this, so it's scoped to Safari specifically.
-  const skipBlur = useIsSafari();
 
   return (
     <div
@@ -38,33 +32,19 @@ export default function BottomNav({
       }}
     >
       <div
-        className="w-full pointer-events-auto relative overflow-hidden"
+        className="w-full pointer-events-auto"
         style={{
           maxWidth: 420,
-          background: skipBlur ? "var(--bg-card)" : "var(--glass-bg)",
-          border: `1px solid ${skipBlur ? "var(--border)" : "var(--glass-border)"}`,
+          background: "var(--bg-card)",
+          border: "1px solid var(--border)",
           borderRadius: 24,
-          boxShadow: skipBlur
-            ? "var(--shadow-lg)"
-            : "var(--shadow-lg), inset 0 1px 0 var(--glass-highlight), inset 0 0 0 1px var(--glass-sheen)",
-          backdropFilter: skipBlur ? "none" : "blur(24px) saturate(180%)",
-          WebkitBackdropFilter: skipBlur ? "none" : "blur(24px) saturate(180%)",
+          boxShadow: "var(--shadow-lg)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
           padding: 6,
           transform: "translateZ(0)",
         }}
       >
-        {/* Diagonal sheen — a faint light pass across the glass, like a
-            reflection catching the surface at an angle. */}
-        {!skipBlur && (
-          <div
-            className="pointer-events-none absolute inset-0"
-            style={{
-              background:
-                "linear-gradient(115deg, var(--glass-sheen) 0%, transparent 30%, transparent 70%, var(--glass-sheen) 100%)",
-            }}
-          />
-        )}
-
         {/* Positioned ancestor holds no padding of its own, so the
             sliding highlight's percentage math lines up exactly with
             the flex-basis of the buttons beside it. */}
@@ -77,12 +57,7 @@ export default function BottomNav({
           >
             <div
               className="absolute inset-1 rounded-2xl"
-              style={{
-                background:
-                  "linear-gradient(180deg, rgba(0, 214, 143, 0.22), rgba(0, 214, 143, 0.1))",
-                boxShadow:
-                  "inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 1px 4px rgba(0, 214, 143, 0.18)",
-              }}
+              style={{ background: "rgba(0, 214, 143, 0.14)" }}
             />
           </motion.div>
 
