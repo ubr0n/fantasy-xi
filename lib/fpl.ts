@@ -213,6 +213,7 @@ export interface Fixture {
   event: number | null;
   team_h: number;
   team_a: number;
+  started: boolean;
   finished: boolean;
   finished_provisional: boolean;
   kickoff_time: string | null;

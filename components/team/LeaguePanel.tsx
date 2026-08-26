@@ -1,11 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { useState } from "react";
-import type { ClassicLeague, LeagueMembership } from "@/lib/fpl";
+import type { ClassicLeague, Fixture, LeagueMembership, Player } from "@/lib/fpl";
 import { liveSeasonTotal } from "@/lib/fpl";
+import { computeLiveProgress, effectiveStartingElements } from "@/lib/autoSubs";
 import type { EnrichedEntry } from "./types";
 import { CHIP_CLASSES } from "./types";
 import { TableRowSkeleton } from "@/components/Skeleton";
+import LeagueSelect from "./LeagueSelect";
 
 type LeagueSort = "rank" | "captain" | "gw" | "total" | "chip";
 
@@ -16,7 +18,7 @@ const CHIP_SHORT: Record<string, string> = {
   "3xc": "TC",
 };
 
-const GRID = "20px 1fr 28px 60px 38px 38px";
+const GRID = "20px 1fr 28px 60px 46px 38px";
 
 export default function LeaguePanel({
   league,
@@ -29,6 +31,7 @@ export default function LeaguePanel({
   leagueId,
   onLeagueChange,
   playerMap,
+  fixtures,
 }: {
   league: ClassicLeague | null;
   enriched: EnrichedEntry[];
@@ -39,7 +42,8 @@ export default function LeaguePanel({
   leagues: LeagueMembership[];
   leagueId: number | null;
   onLeagueChange: (id: number) => void;
-  playerMap: Map<number, { web_name: string }>;
+  playerMap: Map<number, Player>;
+  fixtures: Fixture[];
 }) {
   const [sort, setSort] = useState<LeagueSort>("rank");
 
@@ -96,7 +100,6 @@ export default function LeaguePanel({
         textAlign: align,
       }}
     >
-      {sort === key ? "▼ " : ""}
       {label}
     </span>
   );
@@ -115,22 +118,11 @@ export default function LeaguePanel({
           League
         </div>
         {leagues.length > 1 ? (
-          <select
-            value={leagueId ?? ""}
-            onChange={(e) => onLeagueChange(parseInt(e.target.value))}
-            className="w-full rounded-lg px-[0.6rem] py-[0.35rem] text-[0.78rem] font-semibold cursor-pointer outline-none"
-            style={{
-              background: "var(--bg-card)",
-              border: "1px solid var(--border-strong)",
-              color: "var(--text-primary)",
-            }}
-          >
-            {leagues.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.name}
-              </option>
-            ))}
-          </select>
+          <LeagueSelect
+            leagues={leagues}
+            value={leagueId}
+            onChange={onLeagueChange}
+          />
         ) : (
           <div className="font-bold text-[0.85rem] leading-tight">
             {league?.league.name ?? "—"}
@@ -188,6 +180,18 @@ export default function LeaguePanel({
               ? (CHIP_SHORT[entry.chipActive] ??
                 entry.chipActive.toUpperCase().slice(0, 2))
               : null;
+            const effectiveElements = entry.entryPicks
+              ? effectiveStartingElements(
+                  entry.entryPicks,
+                  entry.subs ?? [],
+                  entry.chipActive === "bboost",
+                )
+              : [];
+            const { inPlay, toPlay } = computeLiveProgress(
+              effectiveElements,
+              playerMap,
+              fixtures,
+            );
 
             return (
               <div
@@ -268,8 +272,43 @@ export default function LeaguePanel({
                   {captain}
                 </div>
 
-                <div className="text-right text-[0.78rem] font-semibold">
-                  {entry.livePoints ?? entry.event_total}
+                <div
+                  className="text-right"
+                  title={
+                    inPlay > 0 || toPlay > 0
+                      ? `${inPlay} in play · ${toPlay} yet to play`
+                      : undefined
+                  }
+                >
+                  <div className="text-[0.78rem] font-semibold">
+                    {entry.livePoints ?? entry.event_total}
+                  </div>
+                  {(inPlay > 0 || toPlay > 0) && (
+                    <div className="flex items-center justify-end gap-0.75 mt-0.5">
+                      {inPlay > 0 && (
+                        <span className="flex items-center gap-0.5">
+                          <span
+                            className="live-dot"
+                            style={{ width: 5, height: 5 }}
+                          />
+                          <span
+                            className="text-[0.55rem] font-bold"
+                            style={{ color: "var(--danger)" }}
+                          >
+                            {inPlay}
+                          </span>
+                        </span>
+                      )}
+                      {toPlay > 0 && (
+                        <span
+                          className="text-[0.55rem] font-semibold"
+                          style={{ color: "var(--text-muted)" }}
+                        >
+                          +{toPlay}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div
