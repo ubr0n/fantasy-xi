@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useTheme } from "./ThemeProvider";
-import { Moon, Sun, Users } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import logo from "@/app/app-logo.png";
@@ -41,13 +41,6 @@ export default function Navbar() {
       </Link>
 
       <div className="flex items-center gap-2">
-        <Link href="/" className="no-underline">
-          <button className="btn-ghost flex items-center gap-1.5 px-[0.9rem] py-[0.4rem]">
-            <Users size={14} />
-            <span className="hide-sm">Search</span>
-          </button>
-        </Link>
-
         {canToggle && (
           <button
             onClick={toggle}
