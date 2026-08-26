@@ -7,11 +7,13 @@ import Image from "next/image";
 import logo from "@/app/app-logo.png";
 import logoDark from "@/app/app-logo-dark.png";
 import AddToHomeScreenModal from "./AddToHomeScreenModal";
+import { useIsSafari } from "@/lib/browser";
 
 export default function Navbar() {
   const { theme, toggle, canToggle } = useTheme();
   const [scrolled, setScrolled] = useState(false);
   const [showInstallModal, setShowInstallModal] = useState(false);
+  const skipBlur = useIsSafari();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -24,15 +26,23 @@ export default function Navbar() {
     <nav
       className="fixed top-0 left-0 right-0 z-100 flex items-center justify-between px-6 py-3 transition-all duration-300"
       style={{
-        background: scrolled ? "var(--glass-bg)" : "transparent",
+        background: scrolled
+          ? skipBlur
+            ? "var(--bg-card)"
+            : "var(--glass-bg)"
+          : "transparent",
         borderBottom: scrolled
-          ? "1px solid var(--glass-border)"
+          ? `1px solid ${skipBlur ? "var(--border)" : "var(--glass-border)"}`
           : "1px solid transparent",
         boxShadow: scrolled
-          ? "var(--shadow-sm), inset 0 -1px 0 var(--glass-highlight)"
+          ? skipBlur
+            ? "var(--shadow-sm)"
+            : "var(--shadow-sm), inset 0 -1px 0 var(--glass-highlight)"
           : "none",
-        backdropFilter: scrolled ? "blur(20px) saturate(180%)" : "none",
-        WebkitBackdropFilter: scrolled ? "blur(20px) saturate(180%)" : "none",
+        backdropFilter:
+          scrolled && !skipBlur ? "blur(20px) saturate(180%)" : "none",
+        WebkitBackdropFilter:
+          scrolled && !skipBlur ? "blur(20px) saturate(180%)" : "none",
         transform: "translateZ(0)",
       }}
     >

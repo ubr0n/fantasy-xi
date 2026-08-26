@@ -1,6 +1,7 @@
 "use client";
 import { motion } from "framer-motion";
 import { Trophy, Users, Zap, Activity } from "lucide-react";
+import { useIsSafari } from "@/lib/browser";
 import type { MobileTab } from "./types";
 
 const TABS = [
@@ -23,6 +24,11 @@ export default function BottomNav({
     0,
     TABS.findIndex((t) => t.key === active),
   );
+  // This nav is mounted the whole time on mobile, so its backdrop-filter
+  // runs continuously — on Safari that's expensive enough to noticeably lag
+  // unrelated things elsewhere on the page (e.g. a modal closing). Other iOS
+  // browsers don't show this, so it's scoped to Safari specifically.
+  const skipBlur = useIsSafari();
 
   return (
     <div
@@ -35,26 +41,29 @@ export default function BottomNav({
         className="w-full pointer-events-auto relative overflow-hidden"
         style={{
           maxWidth: 420,
-          background: "var(--glass-bg)",
-          border: "1px solid var(--glass-border)",
+          background: skipBlur ? "var(--bg-card)" : "var(--glass-bg)",
+          border: `1px solid ${skipBlur ? "var(--border)" : "var(--glass-border)"}`,
           borderRadius: 24,
-          boxShadow:
-            "var(--shadow-lg), inset 0 1px 0 var(--glass-highlight), inset 0 0 0 1px var(--glass-sheen)",
-          backdropFilter: "blur(24px) saturate(180%)",
-          WebkitBackdropFilter: "blur(24px) saturate(180%)",
+          boxShadow: skipBlur
+            ? "var(--shadow-lg)"
+            : "var(--shadow-lg), inset 0 1px 0 var(--glass-highlight), inset 0 0 0 1px var(--glass-sheen)",
+          backdropFilter: skipBlur ? "none" : "blur(24px) saturate(180%)",
+          WebkitBackdropFilter: skipBlur ? "none" : "blur(24px) saturate(180%)",
           padding: 6,
           transform: "translateZ(0)",
         }}
       >
         {/* Diagonal sheen — a faint light pass across the glass, like a
             reflection catching the surface at an angle. */}
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(115deg, var(--glass-sheen) 0%, transparent 30%, transparent 70%, var(--glass-sheen) 100%)",
-          }}
-        />
+        {!skipBlur && (
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(115deg, var(--glass-sheen) 0%, transparent 30%, transparent 70%, var(--glass-sheen) 100%)",
+            }}
+          />
+        )}
 
         {/* Positioned ancestor holds no padding of its own, so the
             sliding highlight's percentage math lines up exactly with

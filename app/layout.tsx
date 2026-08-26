@@ -112,9 +112,11 @@ export default function RootLayout({
       <body>
         {/* Applies the theme class before hydration, so the correct theme is
             visible from the first paint instead of flashing in after mount.
-            Safari is locked to dark — see ThemeProvider for why. */}
+            Safari is locked to dark — see ThemeProvider for why. It also gets
+            a "safari" class so globals.css can drop backdrop-filter glass on
+            .card before first paint — see the html.safari rules there. */}
         <Script id="theme-init" strategy="beforeInteractive">
-          {`(function(){try{var ua=navigator.userAgent;var isSafari=/^((?!chrome|android|crios|fxios|edgios).)*safari/i.test(ua);if(isSafari){document.documentElement.classList.add('dark');return;}var t=localStorage.getItem('fpl-theme');if(!t){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}if(t==='dark')document.documentElement.classList.add('dark');}catch(e){}})();`}
+          {`(function(){try{var ua=navigator.userAgent;var isSafari=/^((?!chrome|android|crios|fxios|edgios).)*safari/i.test(ua);if(isSafari){document.documentElement.classList.add('dark','safari');return;}var t=localStorage.getItem('fpl-theme');if(!t){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}if(t==='dark')document.documentElement.classList.add('dark');}catch(e){}})();`}
         </Script>
         <script
           type="application/ld+json"

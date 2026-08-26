@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Share, MoreVertical, SquarePlus, X } from "lucide-react";
-import { isSafariBrowser } from "@/lib/browser";
+import { useIsSafari } from "@/lib/browser";
 
 type Platform = "ios" | "android";
 
@@ -71,17 +71,18 @@ export default function AddToHomeScreenModal({
   onClose: () => void;
 }) {
   const [platform, setPlatform] = useState<Platform>("ios");
-  // Safari's compositor lags badly when this overlay's own blur — sitting on
-  // top of the nav/cards' own backdrop-filter glass — gets torn down on
-  // close. Other iOS browsers (Chrome, Firefox) don't show this, so it's
-  // scoped to Safari specifically rather than dropped everywhere.
-  const [skipBlur, setSkipBlur] = useState(false);
+  // Safari's compositor lags badly recomposing this overlay against the
+  // page's other backdrop-filter glass underneath. Other iOS browsers
+  // (Chrome, Firefox) don't show this, so it's scoped to Safari specifically.
+  const skipBlur = useIsSafari();
 
   useEffect(() => {
+    // Can't know this without reading navigator, which isn't available
+    // during SSR — same reasoning as ThemeProvider's Safari check.
     const ua = navigator.userAgent;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (/android/i.test(ua)) setPlatform("android");
     else setPlatform("ios");
-    setSkipBlur(isSafariBrowser());
   }, []);
 
   useEffect(() => {

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, ChevronDown } from "lucide-react";
 import type { LeagueMembership } from "@/lib/fpl";
+import { useIsSafari } from "@/lib/browser";
 
 export default function LeagueSelect({
   leagues,
@@ -16,6 +17,7 @@ export default function LeagueSelect({
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const selected = leagues.find((l) => l.id === value);
+  const skipBlur = useIsSafari();
 
   useEffect(() => {
     if (!open) return;
@@ -67,13 +69,16 @@ export default function LeagueSelect({
             transition={{ type: "spring", stiffness: 500, damping: 32 }}
             className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 overflow-hidden origin-top"
             style={{
-              background: "var(--glass-bg)",
-              border: "1px solid var(--glass-border)",
+              background: skipBlur ? "var(--bg-card)" : "var(--glass-bg)",
+              border: `1px solid ${skipBlur ? "var(--border)" : "var(--glass-border)"}`,
               borderRadius: 14,
-              boxShadow:
-                "var(--shadow-lg), inset 0 1px 0 var(--glass-highlight), inset 0 0 0 1px var(--glass-sheen)",
-              backdropFilter: "blur(24px) saturate(180%)",
-              WebkitBackdropFilter: "blur(24px) saturate(180%)",
+              boxShadow: skipBlur
+                ? "var(--shadow-lg)"
+                : "var(--shadow-lg), inset 0 1px 0 var(--glass-highlight), inset 0 0 0 1px var(--glass-sheen)",
+              backdropFilter: skipBlur ? "none" : "blur(24px) saturate(180%)",
+              WebkitBackdropFilter: skipBlur
+                ? "none"
+                : "blur(24px) saturate(180%)",
               padding: 4,
               maxHeight: 260,
               overflowY: "auto",

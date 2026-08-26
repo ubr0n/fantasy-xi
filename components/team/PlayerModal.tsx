@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import type { ManagerPicks, LiveElement } from "@/lib/fpl";
 import {
@@ -9,7 +8,7 @@ import {
   getPositionName,
   formatCost,
 } from "@/lib/fpl";
-import { isSafariBrowser } from "@/lib/browser";
+import { useIsSafari } from "@/lib/browser";
 import type { EnrichedEntry } from "./types";
 import { STAT_META } from "./types";
 
@@ -36,12 +35,10 @@ export default function PlayerModal({
   const s = live?.stats;
   const posColor = player ? getPositionColor(player.element_type) : "#fff";
 
-  // Safari's compositor lags badly when this overlay's own blur — sitting on
-  // top of the nav/cards' own backdrop-filter glass — gets torn down on
-  // close. Other iOS browsers (Chrome, Firefox) don't show this, so it's
-  // scoped to Safari specifically rather than dropped everywhere.
-  const [skipBlur, setSkipBlur] = useState(false);
-  useEffect(() => setSkipBlur(isSafariBrowser()), []);
+  // Safari's compositor lags badly recomposing this overlay against the
+  // page's other backdrop-filter glass underneath. Other iOS browsers
+  // (Chrome, Firefox) don't show this, so it's scoped to Safari specifically.
+  const skipBlur = useIsSafari();
 
   const breakdown: {
     label: string;
