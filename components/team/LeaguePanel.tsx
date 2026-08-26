@@ -7,7 +7,6 @@ import { computeLiveProgress, effectiveStartingElements } from "@/lib/autoSubs";
 import type { EnrichedEntry } from "./types";
 import { CHIP_CLASSES } from "./types";
 import { TableRowSkeleton } from "@/components/Skeleton";
-import LeagueSelect from "./LeagueSelect";
 
 type LeagueSort = "rank" | "captain" | "gw" | "total" | "chip";
 
@@ -118,11 +117,22 @@ export default function LeaguePanel({
           League
         </div>
         {leagues.length > 1 ? (
-          <LeagueSelect
-            leagues={leagues}
-            value={leagueId}
-            onChange={onLeagueChange}
-          />
+          <select
+            value={leagueId ?? ""}
+            onChange={(e) => onLeagueChange(parseInt(e.target.value))}
+            className="w-full rounded-lg px-[0.6rem] py-[0.35rem] text-[0.78rem] font-semibold cursor-pointer outline-none"
+            style={{
+              background: "var(--bg-card)",
+              border: "1px solid var(--border-strong)",
+              color: "var(--text-primary)",
+            }}
+          >
+            {leagues.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name}
+              </option>
+            ))}
+          </select>
         ) : (
           <div className="font-bold text-[0.85rem] leading-tight">
             {league?.league.name ?? "—"}
