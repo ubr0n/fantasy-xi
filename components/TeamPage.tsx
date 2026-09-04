@@ -122,15 +122,20 @@ export default function TeamPage({ managerId }: Props) {
   const viewedPicks = viewedPicksQuery.data ?? null;
 
   const entries = useMemo(() => league?.standings.results ?? [], [league]);
-  // Only the top 20 get a live-enriched fetch — one request per entry for an
-  // entire league would burst dozens of concurrent requests at a single
-  // serverless function on every page load. Entries beyond that keep their
-  // static GW total instead of being dropped from the standings.
+  // Every entry on the current page gets a live-enriched fetch so captain and
+  // chip info is never silently missing for rows that are actually visible —
+  // capping this at a subset (previously top 20) meant many managers in the
+  // standings showed no captain and chips went uncounted.
   const enrichPicksQueries = useQueries({
-    queries: entries
-      .slice(0, 20)
-      .map((entry) => managerPicksQueryOptions(entry.entry, activeGW, true)),
+    queries: entries.map((entry) => managerPicksQueryOptions(entry.entry, activeGW, true)),
   });
+  // A stable string that only changes once a query actually resolves with new
+  // data — the queries array itself gets a new identity every render, which
+  // would either bust memoization entirely or (if left out of the deps below)
+  // freeze the computed table at whatever partial data existed on the one
+  // render where entries/liveData/bootstrap/fixtures last changed, silently
+  // ignoring every picks fetch that resolves afterwards.
+  const picksDataSignal = enrichPicksQueries.map((q) => q.dataUpdatedAt).join(",");
 
   const enriched: EnrichedEntry[] = useMemo(() => {
     if (!liveData || !bootstrap) return [];
@@ -140,7 +145,7 @@ export default function TeamPage({ managerId }: Props) {
     const confirmedZero = buildConfirmedZero(liveMap, playerMap, fixtures);
 
     return entries.map((entry, i) => {
-      const p = i < 20 ? enrichPicksQueries[i]?.data : undefined;
+      const p = enrichPicksQueries[i]?.data;
       if (!p) return { ...entry };
       const subs =
         p.automatic_subs.length > 0
@@ -157,16 +162,13 @@ export default function TeamPage({ managerId }: Props) {
           armbandElement,
         ).total,
         chipActive: p.active_chip,
-        captain: p.picks.find((pk) => pk.is_captain)?.element,
+        captain: armbandElement ?? p.picks.find((pk) => pk.is_captain)?.element,
         entryPicks: p.picks,
         subs,
       };
     });
-    // enrichPicksQueries' identity changes every render; its .data values are
-    // what actually determine when this should recompute, so listing them
-    // individually would be noise — silenced deliberately.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entries, liveData, bootstrap, fixtures]);
+  }, [entries, liveData, bootstrap, fixtures, picksDataSignal]);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 1024);

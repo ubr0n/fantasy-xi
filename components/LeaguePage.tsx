@@ -98,6 +98,13 @@ export default function LeaguePage({ leagueId }: Props) {
   const liveLoading =
     liveQuery.isFetching || fixturesQuery.isFetching || picksQueries.some((q) => q.isFetching);
 
+  // A stable string that only changes once a query actually resolves with new
+  // data — used below instead of picksQueries itself, which gets a new array
+  // identity every render and would otherwise never trigger a recompute
+  // (leaving the table frozen at whatever partial data existed the last time
+  // entries/liveQuery.data/bootstrap/fixturesQuery.data changed).
+  const picksDataSignal = picksQueries.map((q) => q.dataUpdatedAt).join(",");
+
   const enriched: EnrichedEntry[] = useMemo(() => {
     if (!liveQuery.data || !bootstrap) return [];
     const liveMap = new Map<number, LiveElement>();
@@ -124,15 +131,11 @@ export default function LeaguePage({ leagueId }: Props) {
         ...entry,
         livePoints: liveScore.total,
         chipActive: picks.active_chip,
-        captain: armbandElement ?? undefined,
+        captain: armbandElement ?? picks.picks.find((p) => p.is_captain)?.element,
       };
     });
-    // picksQueries' identity changes every render; its .data values (via each
-    // query's dataUpdatedAt) are what actually determine when this should
-    // recompute, so listing them individually would be noise — the eslint
-    // rule can't see that, so it's silenced deliberately here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entries, liveQuery.data, bootstrap, fixturesQuery.data]);
+  }, [entries, liveQuery.data, bootstrap, fixturesQuery.data, picksDataSignal]);
 
   const refresh = () => {
     liveQuery.refetch();
