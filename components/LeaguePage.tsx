@@ -10,6 +10,8 @@ import {
   TrendingDown,
   Minus,
   Award,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   LeagueEntry,
@@ -37,6 +39,8 @@ interface EnrichedEntry extends LeagueEntry {
   livePoints?: number;
   chipActive?: string | null;
   captain?: number;
+  gwPoints?: number;
+  seasonTotal?: number;
 }
 
 const CHIP_LABELS: Record<string, string> = {
@@ -69,6 +73,20 @@ export default function LeaguePage({ leagueId }: Props) {
     window.history.replaceState(null, "", `${pathname}?${p.toString()}`);
   };
 
+  const [gwOverride, setGwOverride] = useState<number | null>(
+    () => {
+      const gw = searchParams.get("gw");
+      return gw ? parseInt(gw) : null;
+    },
+  );
+
+  const setGW = (gw: number) => {
+    setGwOverride(gw);
+    const p = new URLSearchParams(searchParams.toString());
+    p.set("gw", String(gw));
+    window.history.replaceState(null, "", `${pathname}?${p.toString()}`);
+  };
+
   const bootstrapQuery = useQuery(bootstrapQueryOptions());
   const leagueQuery = useQuery(classicLeagueQueryOptions(leagueId, page));
 
@@ -82,9 +100,13 @@ export default function LeaguePage({ leagueId }: Props) {
       bootstrap.events.find((e) => e.is_next)?.id ||
       1
     : 0;
+  const activeGW = gwOverride || currentGW;
+  const isCurrentGW = activeGW === currentGW;
+  const gwEvents = bootstrap?.events ?? [];
+  const maxGW = gwEvents.filter((e) => e.finished || e.is_current).length;
 
-  const liveQuery = useQuery(liveGameweekQueryOptions(currentGW));
-  const fixturesQuery = useQuery(fixturesQueryOptions(currentGW));
+  const liveQuery = useQuery(liveGameweekQueryOptions(activeGW));
+  const fixturesQuery = useQuery(fixturesQueryOptions(activeGW));
 
   const entries = useMemo(() => league?.standings.results ?? [], [league]);
   // Every entry on the current page gets a live-enriched fetch so captain and
@@ -92,7 +114,7 @@ export default function LeaguePage({ leagueId }: Props) {
   // capping this at a subset (previously top 20) meant many managers on the
   // page showed no captain star and chips went uncounted in the summary.
   const picksQueries = useQueries({
-    queries: entries.map((entry) => managerPicksQueryOptions(entry.entry, currentGW, true)),
+    queries: entries.map((entry) => managerPicksQueryOptions(entry.entry, activeGW, true)),
   });
 
   const liveLoading =
@@ -127,15 +149,24 @@ export default function LeaguePage({ leagueId }: Props) {
         subs,
         armbandElement,
       );
+      // The standings endpoint's event_total/total only ever reflect the
+      // *actual* current gameweek, no matter which GW this table is showing —
+      // for any other (finished) GW, the per-manager picks fetch's own
+      // entry_history carries the real points/total for that GW instead. For
+      // the current GW, entry_history.points lags behind our own live calc
+      // (FPL doesn't finalize it until the gameweek is checked), so it's left
+      // unset there and the event_total/liveSeasonTotal fallbacks take over.
       return {
         ...entry,
-        livePoints: liveScore.total,
+        livePoints: isCurrentGW ? liveScore.total : picks.entry_history.points,
+        gwPoints: isCurrentGW ? undefined : picks.entry_history.points,
+        seasonTotal: isCurrentGW ? undefined : picks.entry_history.total_points,
         chipActive: picks.active_chip,
         captain: armbandElement ?? picks.picks.find((p) => p.is_captain)?.element,
       };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entries, liveQuery.data, bootstrap, fixturesQuery.data, picksDataSignal]);
+  }, [entries, liveQuery.data, bootstrap, fixturesQuery.data, picksDataSignal, isCurrentGW]);
 
   const refresh = () => {
     liveQuery.refetch();
@@ -179,14 +210,18 @@ export default function LeaguePage({ leagueId }: Props) {
 
   // The value being compared for the active sort — used to detect ties so
   // equally-placed entries share a rank (1, 1, 1, 4, 5, 6, 6, 8, ...).
+  const seasonTotalOf = (entry: EnrichedEntry) =>
+    entry.seasonTotal ?? liveSeasonTotal(entry);
+  const gwPointsOf = (entry: EnrichedEntry) => entry.gwPoints ?? entry.event_total;
+
   const sortValue = (entry: EnrichedEntry): number => {
     switch (sortParam) {
       case "total":
-        return liveSeasonTotal(entry);
+        return seasonTotalOf(entry);
       case "event_total":
-        return entry.event_total;
+        return gwPointsOf(entry);
       case "live":
-        return entry.livePoints ?? entry.event_total;
+        return entry.livePoints ?? gwPointsOf(entry);
       case "rank_change":
         return entry.last_rank - entry.rank;
       default:
@@ -197,12 +232,12 @@ export default function LeaguePage({ leagueId }: Props) {
   const sorted = [...displayEntries].sort((a, b) => {
     switch (sortParam) {
       case "total":
-        return liveSeasonTotal(b) - liveSeasonTotal(a);
+        return seasonTotalOf(b) - seasonTotalOf(a);
       case "event_total":
-        return b.event_total - a.event_total;
+        return gwPointsOf(b) - gwPointsOf(a);
       case "live":
         return (
-          (b.livePoints ?? b.event_total) - (a.livePoints ?? a.event_total)
+          (b.livePoints ?? gwPointsOf(b)) - (a.livePoints ?? gwPointsOf(a))
         );
       case "rank_change":
         return a.last_rank - a.rank - (b.last_rank - b.rank);
@@ -233,7 +268,7 @@ export default function LeaguePage({ leagueId }: Props) {
     </button>
   );
 
-  const gwEvent = bootstrap?.events.find((e) => e.id === currentGW);
+  const gwEvent = bootstrap?.events.find((e) => e.id === activeGW);
 
   return (
     <div
@@ -306,7 +341,7 @@ export default function LeaguePage({ leagueId }: Props) {
                 { val: displayEntries.length, label: "Managers", accent: true },
                 gwEvent
                   ? {
-                      val: `GW${currentGW}`,
+                      val: `GW${activeGW}`,
                       label: gwEvent.finished
                         ? "Finished"
                         : gwEvent.is_current
@@ -356,6 +391,42 @@ export default function LeaguePage({ leagueId }: Props) {
           {sortBtn("total", "🏆 Total")}
           {sortBtn("rank_change", "📈 Movement")}
         </div>
+
+        {/* Gameweek selector */}
+        <div className="flex items-center gap-1.25 mb-3">
+          <button
+            className="btn-ghost px-[0.55rem] py-[0.3rem] shrink-0"
+            onClick={() => activeGW > 1 && setGW(activeGW - 1)}
+            disabled={activeGW <= 1}
+          >
+            <ChevronLeft size={13} />
+          </button>
+          <div className="flex-1 flex gap-1 overflow-x-auto no-scrollbar">
+            {gwEvents
+              .filter((e) => e.finished || e.is_current)
+              .map((e) => (
+                <button
+                  key={e.id}
+                  onClick={() => setGW(e.id)}
+                  className="shrink-0 rounded-full text-[0.7rem] font-semibold border-0 cursor-pointer transition-all duration-150 px-2.25 py-0.75"
+                  style={{
+                    background:
+                      e.id === activeGW ? "var(--accent)" : "var(--bg-subtle)",
+                    color: e.id === activeGW ? "#000" : "var(--text-secondary)",
+                  }}
+                >
+                  GW{e.id}
+                </button>
+              ))}
+          </div>
+          <button
+            className="btn-ghost px-[0.55rem] py-[0.3rem] shrink-0"
+            onClick={() => activeGW < maxGW && setGW(activeGW + 1)}
+            disabled={activeGW >= maxGW}
+          >
+            <ChevronRight size={13} />
+          </button>
+        </div>
       </div>
 
       {/* Table */}
@@ -383,7 +454,8 @@ export default function LeaguePage({ leagueId }: Props) {
             {sorted.map((entry, idx) => {
               const displayRank = displayRanks[idx];
               const change = entry.last_rank - entry.rank;
-              const liveScore = entry.livePoints ?? entry.event_total;
+              const gwPoints = gwPointsOf(entry);
+              const liveScore = entry.livePoints ?? gwPoints;
               const captain = entry.captain
                 ? playerMap.get(entry.captain)
                 : null;
@@ -400,7 +472,7 @@ export default function LeaguePage({ leagueId }: Props) {
                         : undefined,
                   }}
                   onClick={() =>
-                    router.push(`/team/${entry.entry}?gw=${currentGW}`)
+                    router.push(`/team/${entry.entry}?gw=${activeGW}`)
                   }
                 >
                   <div className="flex items-center gap-0.75">
@@ -465,7 +537,7 @@ export default function LeaguePage({ leagueId }: Props) {
                     className="text-right text-[1.1rem]"
                     style={{ fontFamily: "var(--font-display)" }}
                   >
-                    {entry.event_total}
+                    {gwPoints}
                   </div>
 
                   <div
@@ -479,7 +551,7 @@ export default function LeaguePage({ leagueId }: Props) {
                   </div>
 
                   <div className="text-right font-semibold text-[0.9rem]">
-                    {liveSeasonTotal(entry)}
+                    {seasonTotalOf(entry)}
                   </div>
 
                   <div className="hide-sm text-right">

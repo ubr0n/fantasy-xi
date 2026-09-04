@@ -98,12 +98,18 @@ export default function TeamPage({ managerId }: Props) {
       1
     : 0;
   const activeGW = gwOverride || currentGW;
+  const isCurrentGW = activeGW === currentGW;
 
-  const myLeagues: LeagueMembership[] = manager?.leagues?.classic || [];
+  const myLeagues: LeagueMembership[] = useMemo(
+    () => [...(manager?.leagues?.classic || [])].sort((a, b) => a.name.localeCompare(b.name)),
+    [manager],
+  );
+  // short_name is only set on FPL's auto-generated global leagues (Overall,
+  // your country, your club, ...) — real leagues a manager joined don't have
+  // one, so that's what distinguishes them for picking a sensible default.
   const leagueId =
     selectedLeagueId ??
     myLeagues.find((l) => !l.short_name)?.id ??
-    myLeagues.find((l) => l.id > 1000)?.id ??
     myLeagues[0]?.id;
 
   const leagueQuery = useQuery(classicLeagueQueryOptions(leagueId ?? null, 1));
@@ -152,15 +158,18 @@ export default function TeamPage({ managerId }: Props) {
           ? p.automatic_subs
           : computeProvisionalAutoSubs(p.picks, playerMap, confirmedZero);
       const armbandElement = computeArmbandElement(p.picks, confirmedZero);
+      // The standings endpoint's event_total/total only ever reflect the
+      // *actual* current gameweek, no matter which GW is selected — for any
+      // other (finished) GW, entry_history carries the real points/total for
+      // that GW. For the current GW it's left unset since entry_history.points
+      // lags behind our own live calc until FPL finalizes the gameweek.
       return {
         ...entry,
-        livePoints: calculateLivePoints(
-          p.picks,
-          liveMap,
-          p.active_chip,
-          subs,
-          armbandElement,
-        ).total,
+        livePoints: isCurrentGW
+          ? calculateLivePoints(p.picks, liveMap, p.active_chip, subs, armbandElement).total
+          : p.entry_history.points,
+        gwPoints: isCurrentGW ? undefined : p.entry_history.points,
+        seasonTotal: isCurrentGW ? undefined : p.entry_history.total_points,
         chipActive: p.active_chip,
         captain: armbandElement ?? p.picks.find((pk) => pk.is_captain)?.element,
         entryPicks: p.picks,
@@ -168,7 +177,7 @@ export default function TeamPage({ managerId }: Props) {
       };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entries, liveData, bootstrap, fixtures, picksDataSignal]);
+  }, [entries, liveData, bootstrap, fixtures, picksDataSignal, isCurrentGW]);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 1024);
@@ -295,6 +304,9 @@ export default function TeamPage({ managerId }: Props) {
     onLeagueChange: changeLeague,
     playerMap,
     fixtures,
+    gwEvents,
+    maxGW,
+    onGWChange: setGW,
   };
 
   const teamPanelProps = {

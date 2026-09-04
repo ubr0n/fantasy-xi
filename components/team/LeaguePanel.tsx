@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { useState } from "react";
-import type { ClassicLeague, Fixture, LeagueMembership, Player } from "@/lib/fpl";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import type { ClassicLeague, Fixture, GameWeek, LeagueMembership, Player } from "@/lib/fpl";
 import { liveSeasonTotal } from "@/lib/fpl";
 import { computeLiveProgress, effectiveStartingElements } from "@/lib/autoSubs";
 import type { EnrichedEntry } from "./types";
@@ -32,6 +32,9 @@ export default function LeaguePanel({
   onLeagueChange,
   playerMap,
   fixtures,
+  gwEvents,
+  maxGW,
+  onGWChange,
 }: {
   league: ClassicLeague | null;
   enriched: EnrichedEntry[];
@@ -44,6 +47,9 @@ export default function LeaguePanel({
   onLeagueChange: (id: number) => void;
   playerMap: Map<number, Player>;
   fixtures: Fixture[];
+  gwEvents: GameWeek[];
+  maxGW: number;
+  onGWChange: (gw: number) => void;
 }) {
   const [sort, setSort] = useState<LeagueSort>("rank");
 
@@ -55,12 +61,16 @@ export default function LeaguePanel({
   const captainName = (entry: EnrichedEntry) =>
     entry.captain ? (playerMap.get(entry.captain)?.web_name ?? "") : "";
 
+  const seasonTotalOf = (entry: EnrichedEntry) =>
+    entry.seasonTotal ?? liveSeasonTotal(entry);
+  const gwPointsOf = (entry: EnrichedEntry) => entry.gwPoints ?? entry.event_total;
+
   // The value being compared for the active sort — used to detect ties so
   // equally-placed entries share a rank (1, 1, 1, 4, 5, 6, 6, 8, ...).
   const sortValue = (entry: EnrichedEntry): string | number => {
     if (sort === "captain") return captainName(entry);
-    if (sort === "gw") return entry.livePoints ?? entry.event_total;
-    if (sort === "total") return liveSeasonTotal(entry);
+    if (sort === "gw") return entry.livePoints ?? gwPointsOf(entry);
+    if (sort === "total") return seasonTotalOf(entry);
     if (sort === "chip") return entry.chipActive ? 1 : 0;
     return entry.rank;
   };
@@ -68,8 +78,8 @@ export default function LeaguePanel({
   const sorted = [...raw].sort((a, b) => {
     if (sort === "captain") return captainName(a).localeCompare(captainName(b));
     if (sort === "gw")
-      return (b.livePoints ?? b.event_total) - (a.livePoints ?? a.event_total);
-    if (sort === "total") return liveSeasonTotal(b) - liveSeasonTotal(a);
+      return (b.livePoints ?? gwPointsOf(b)) - (a.livePoints ?? gwPointsOf(a));
+    if (sort === "total") return seasonTotalOf(b) - seasonTotalOf(a);
     if (sort === "chip") {
       const ac = a.chipActive ? 1 : 0;
       const bc = b.chipActive ? 1 : 0;
@@ -134,6 +144,45 @@ export default function LeaguePanel({
         >
           {!league ? "Loading…" : `GW${currentGW} · ${raw.length} managers`}
         </div>
+      </div>
+
+      {/* Gameweek selector */}
+      <div
+        className="shrink-0 flex items-center gap-1 px-[0.7rem] py-[0.4rem] border-b border-(--border)"
+        style={{ background: "var(--bg-subtle)" }}
+      >
+        <button
+          className="btn-ghost px-1 py-0.5 shrink-0"
+          onClick={() => currentGW > 1 && onGWChange(currentGW - 1)}
+          disabled={currentGW <= 1}
+        >
+          <ChevronLeft size={12} />
+        </button>
+        <div className="flex-1 flex gap-1 overflow-x-auto no-scrollbar">
+          {gwEvents
+            .filter((e) => e.finished || e.is_current)
+            .map((e) => (
+              <button
+                key={e.id}
+                onClick={() => onGWChange(e.id)}
+                className="shrink-0 rounded-full text-[0.62rem] font-semibold border-0 cursor-pointer transition-all duration-150 px-1.75 py-0.5"
+                style={{
+                  background:
+                    e.id === currentGW ? "var(--accent)" : "var(--bg-card)",
+                  color: e.id === currentGW ? "#000" : "var(--text-secondary)",
+                }}
+              >
+                {e.id}
+              </button>
+            ))}
+        </div>
+        <button
+          className="btn-ghost px-1 py-0.5 shrink-0"
+          onClick={() => currentGW < maxGW && onGWChange(currentGW + 1)}
+          disabled={currentGW >= maxGW}
+        >
+          <ChevronRight size={12} />
+        </button>
       </div>
 
       {/* Column headers */}
@@ -315,7 +364,7 @@ export default function LeaguePanel({
                   className="text-right text-[0.72rem]"
                   style={{ color: "var(--text-secondary)" }}
                 >
-                  {liveSeasonTotal(entry)}
+                  {seasonTotalOf(entry)}
                 </div>
               </div>
             );

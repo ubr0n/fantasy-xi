@@ -10,6 +10,8 @@ export interface EnrichedEntry extends LeagueEntry {
   captain?: number;
   entryPicks?: FplPick[];
   subs?: SubPair[];
+  gwPoints?: number;
+  seasonTotal?: number;
 }
 
 export const CHIP_LABELS: Record<string, string> = {

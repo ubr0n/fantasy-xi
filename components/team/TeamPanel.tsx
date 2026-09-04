@@ -208,42 +208,45 @@ export default function TeamPanel({
         </div>
       </div>
 
-      {/* GW selector */}
-      <div className="flex items-center gap-1.25 shrink-0">
-        <button
-          className="btn-ghost px-[0.55rem] py-[0.3rem] shrink-0"
-          onClick={() => activeGW > 1 && onGWChange(activeGW - 1)}
-          disabled={activeGW <= 1}
-        >
-          <ChevronLeft size={13} />
-        </button>
-        <div className="flex-1 flex gap-1 overflow-x-auto no-scrollbar">
-          {gwEvents
-            .filter((e) => e.finished || e.is_current)
-            .slice(-12)
-            .map((e: any) => (
-              <button
-                key={e.id}
-                onClick={() => onGWChange(e.id)}
-                className="shrink-0 rounded-full text-[0.7rem] font-semibold border-0 cursor-pointer transition-all duration-150 px-2.25 py-0.75"
-                style={{
-                  background:
-                    e.id === activeGW ? "var(--accent)" : "var(--bg-subtle)",
-                  color: e.id === activeGW ? "#000" : "var(--text-secondary)",
-                }}
-              >
-                {e.id}
-              </button>
-            ))}
+      {/* GW selector — desktop shows this on the league panel instead, so it's
+          not duplicated across both columns */}
+      {isMobile && (
+        <div className="flex items-center gap-1.25 shrink-0">
+          <button
+            className="btn-ghost px-[0.55rem] py-[0.3rem] shrink-0"
+            onClick={() => activeGW > 1 && onGWChange(activeGW - 1)}
+            disabled={activeGW <= 1}
+          >
+            <ChevronLeft size={13} />
+          </button>
+          <div className="flex-1 flex gap-1 overflow-x-auto no-scrollbar">
+            {gwEvents
+              .filter((e) => e.finished || e.is_current)
+              .slice(-12)
+              .map((e: any) => (
+                <button
+                  key={e.id}
+                  onClick={() => onGWChange(e.id)}
+                  className="shrink-0 rounded-full text-[0.7rem] font-semibold border-0 cursor-pointer transition-all duration-150 px-2.25 py-0.75"
+                  style={{
+                    background:
+                      e.id === activeGW ? "var(--accent)" : "var(--bg-subtle)",
+                    color: e.id === activeGW ? "#000" : "var(--text-secondary)",
+                  }}
+                >
+                  {e.id}
+                </button>
+              ))}
+          </div>
+          <button
+            className="btn-ghost px-[0.55rem] py-[0.3rem] shrink-0"
+            onClick={() => activeGW < maxGW && onGWChange(activeGW + 1)}
+            disabled={activeGW >= maxGW}
+          >
+            <ChevronRight size={13} />
+          </button>
         </div>
-        <button
-          className="btn-ghost px-[0.55rem] py-[0.3rem] shrink-0"
-          onClick={() => activeGW < maxGW && onGWChange(activeGW + 1)}
-          disabled={activeGW >= maxGW}
-        >
-          <ChevronRight size={13} />
-        </button>
-      </div>
+      )}
       <div className={compact ? "flex-1 flex flex-col" : "shrink-0"}>
         {/* Squad */}
         {loading ? (
