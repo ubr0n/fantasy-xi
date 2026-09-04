@@ -87,14 +87,12 @@ export default function LeaguePage({ leagueId }: Props) {
   const fixturesQuery = useQuery(fixturesQueryOptions(currentGW));
 
   const entries = useMemo(() => league?.standings.results ?? [], [league]);
-  // Only the top 20 get a live-enriched fetch — firing one request per entry
-  // for an entire league would burst dozens of concurrent requests at a
-  // single serverless function on every load. Entries beyond that keep their
-  // static GW total instead of being dropped from the table.
+  // Every entry on the current page gets a live-enriched fetch so captain and
+  // chip info is never silently missing for rows that are actually visible —
+  // capping this at a subset (previously top 20) meant many managers on the
+  // page showed no captain star and chips went uncounted in the summary.
   const picksQueries = useQueries({
-    queries: entries
-      .slice(0, 20)
-      .map((entry) => managerPicksQueryOptions(entry.entry, currentGW, true)),
+    queries: entries.map((entry) => managerPicksQueryOptions(entry.entry, currentGW, true)),
   });
 
   const liveLoading =
@@ -108,7 +106,7 @@ export default function LeaguePage({ leagueId }: Props) {
     const confirmedZero = buildConfirmedZero(liveMap, playerMap, fixturesQuery.data ?? []);
 
     return entries.map((entry, i) => {
-      const picks = i < 20 ? picksQueries[i]?.data : undefined;
+      const picks = picksQueries[i]?.data;
       if (!picks) return { ...entry, livePoints: entry.event_total };
       const subs =
         picks.automatic_subs.length > 0
@@ -122,12 +120,11 @@ export default function LeaguePage({ leagueId }: Props) {
         subs,
         armbandElement,
       );
-      const captain = picks.picks.find((p) => p.is_captain)?.element;
       return {
         ...entry,
         livePoints: liveScore.total,
         chipActive: picks.active_chip,
-        captain,
+        captain: armbandElement ?? undefined,
       };
     });
     // picksQueries' identity changes every render; its .data values (via each
