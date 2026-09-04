@@ -166,7 +166,14 @@ export default function TeamPage({ managerId }: Props) {
       return {
         ...entry,
         livePoints: isCurrentGW
-          ? calculateLivePoints(p.picks, liveMap, p.active_chip, subs, armbandElement).total
+          ? calculateLivePoints(
+              p.picks,
+              liveMap,
+              p.active_chip,
+              subs,
+              armbandElement,
+              p.entry_history.event_transfers_cost,
+            ).total
           : p.entry_history.points,
         gwPoints: isCurrentGW ? undefined : p.entry_history.points,
         seasonTotal: isCurrentGW ? undefined : p.entry_history.total_points,
@@ -250,7 +257,14 @@ export default function TeamPage({ managerId }: Props) {
   const scoreFor = (p: ManagerPicks | null) => {
     if (!p) return { total: 0, bench: 0 };
     const { subs, armbandElement } = subsFor(p);
-    return calcScore(p.picks, liveMap, p.active_chip, subs, armbandElement);
+    return calcScore(
+      p.picks,
+      liveMap,
+      p.active_chip,
+      subs,
+      armbandElement,
+      p.entry_history.event_transfers_cost,
+    );
   };
 
   const { total: liveTotal, bench: liveBench } = scoreFor(picks);

@@ -148,6 +148,7 @@ export default function LeaguePage({ leagueId }: Props) {
         picks.active_chip,
         subs,
         armbandElement,
+        picks.entry_history.event_transfers_cost,
       );
       // The standings endpoint's event_total/total only ever reflect the
       // *actual* current gameweek, no matter which GW this table is showing —

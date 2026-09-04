@@ -376,7 +376,11 @@ export function calculateLivePoints(
   // Element that gets the captain-tier multiplier this GW. Omit to decide
   // from raw live minutes (default); pass explicitly (or null) when the
   // caller has already worked out a fixture-confirmed armband decision.
-  armbandOverride?: number | null
+  armbandOverride?: number | null,
+  // Points cost of transfers beyond the manager's free allowance this GW
+  // (FPL's entry_history.event_transfers_cost). Known as soon as transfers
+  // are made, so it applies even while the gameweek is still live.
+  transferCost = 0
 ): { total: number; bench: number; playing: number } {
   const isBenchBoost = activeChip === "bboost";
   // Bench Boost counts the full 15, so FPL never runs auto-subs for that gameweek.
@@ -428,5 +432,5 @@ export function calculateLivePoints(
     }
   }
 
-  return { total: playing, bench, playing };
+  return { total: playing - transferCost, bench, playing: playing - transferCost };
 }

@@ -49,6 +49,7 @@ export function calcScore(
   activeChip?: string | null,
   automaticSubs?: SubPair[],
   armbandElement?: number | null,
+  transferCost?: number,
 ) {
   const { total, bench } = calculateLivePoints(
     picks,
@@ -56,6 +57,7 @@ export function calcScore(
     activeChip,
     automaticSubs,
     armbandElement,
+    transferCost,
   );
   return { total, bench };
 }
